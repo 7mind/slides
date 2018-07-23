@@ -47,7 +47,7 @@ texcl=false,
 
     \usepackage {tikz}
     \usetikzlibrary {positioning}
-    \graphicspath {{kotlindsl/media/}}
+    \graphicspath {{target/media/}}
     %----------------------------------------------------------------------------------------
     %	TITLE PAGE
     %----------------------------------------------------------------------------------------
@@ -252,13 +252,13 @@ class ExampleService(log: IzLogger) {
 LogStage is.
 \begin{itemize}
 \item ready to use,
-\item in real production for 4 months
+\item in real production for 4 months.
 \end{itemize}
 \vspace{0.3cm}
 Our plans:
 \begin{itemize}
 \item Declarative router config,
-\item Integrations: LogStash, Graylogs, etc,
+\item Start using log events to collect metrics (keep in mind, we have derived structure identifiers),
 \item Cleanups and refactorings.
 \end{itemize}
 \end{frame}
