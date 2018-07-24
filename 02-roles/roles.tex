@@ -52,7 +52,7 @@ texcl=false,
     %	TITLE PAGE
     %----------------------------------------------------------------------------------------
 
-    \title[LogStage]{LogStage: Zero-cost Structural Logging for Scala}
+    \title[Roles]{Roles: a viable alternative to Microservices and Monoliths}
 
     \institute[Septimal Mind Ltd]
     {
@@ -64,184 +64,126 @@ texcl=false,
 
 \begin{document}
 
-\begin{VerbatimOut}{ex-fluentd.tmp}
-object Example {
-  // We love rituals! Is it SOLID, hmm?..
-  val LOG = FluentLoggerFactory
-    .getLogger("fluentd.test")
-
-  // ...
-
-  val data = 
-      new HashMap[String, String]()
-  data.put("from", "userA")
-  data.put("to", "userB")
-  LOG.log("follow", data)
-}
-\end{VerbatimOut}
-
-\begin{VerbatimOut}{ex-scala-logging.tmp}
-class Example 
-  extends LazyLogging { // Let's break SOLID!
-  //...
-
-  // Renders as "Received message from JohnDoe"
-  // Structure lost
-  logger.trace(s"Received message from $user")
-}
-\end{VerbatimOut}
-
-\begin{VerbatimOut}{ex-scala-tree-source.tmp}
-val user = "JohnDoe"
-logger.debug(s"Received a message from $user")
-\end{VerbatimOut}
-
-\begin{VerbatimOut}{ex-scala-tree-out.tmp}
-Expr(Apply(Select(
-  Apply(
-    Select(Select(Ident("scala"), scala.StringContext), 
-      TermName("apply"))
-      , List(Literal(Constant("Received a message from "))
-          , Literal(Constant(""))
-        )
-  ),
-  TermName("s")
-  )
-, List(Ident(TermName("user")))
-))
-\end{VerbatimOut}
-
-\begin{VerbatimOut}{ex-json-out.tmp}
-{
-"just_a_list":[10,"green","bottles"],
-"just_an_arg":"example",
-"@event":{
-  "class":"f48ebb70",
-  "logger": "...logstage.api.routing.ExampleService.start",
-  "file":"LoggingAsyncSinkTest.scala", "line":20,
-  "thread":{ "id":1, "name":"ScalaTest-run-running-LoggingJson4sTest" },
-  "level":"trace",
-  "timestamp":1532384023837,
-  "datetime":"2018-07-23T22:13:43.837Z[UTC]"
-},
-"@template":
-"Argument: ${just_an_arg}, another arg: ${just_a_list}",
-"@message":
-"Argument: justAnArg=example, another arg: justAList=List(10, green, bottles)"
-}
-\end{VerbatimOut}
-
-\begin{VerbatimOut}{ex-scala-logstage.tmp}
-class ExampleService(log: IzLogger) {
-  val justAnArg = "example"
-  val justAList = List[Any](10, "green", "bottles")
-  val msec = Random.nextInt(1000)
-  log.trace(s"Argument: $justAnArg, another arg: $justAList")
-  log.info(s"Expr: ${Random.nextInt() -> "number"}")
-  log.warn(s"Hidden: ${Random.nextInt() -> "number" -> null}")
-  val ctxLog = log("userId" -> "user@google.com"
-    , "company" -> "acme")
-  ctxLog.info(s"Processing time: $msec")
-}
-\end{VerbatimOut}
-
 \begin{frame}
 \titlepage
 \end{frame}
 
-\section{The problem: what's wrong with all the loggers}
+\section{The problem: both Monolith and Microservice approaches are broken}
 
 \begin{frame}
-\frametitle{What's wrong with logging frameworks?}
-
+\frametitle{Monoliths are broken}
+We all know that Monoliths aren't nice:
 \begin{itemize}
-\item Do we need structured logs? Yes, obviously,
-\item Logging frameworks are convenient for a programmer \textit{xor} for a machine, not for both,
-\item Logging frameworks love to break SOLID,
-\item Magic rituals required!
+\item Inconvenient when your codebase is large: you may need to rebuild to much, etc,
+\item Provoking tight-coupling and non-SOLID code,
+\item Startup time is usually high,
+\item When you update you need to update everything (maybe not a bad things though),
+\item Issues with ,
+\item Some issues may be kinda mitigated by taking care of artifact structuring,
+      pulling conservative parts out of the main codebase into independent libraries.
 \end{itemize}
 \end{frame}
 
 \begin{frame}
-\frametitle{\code{fluentd} logging API example}
-\scalacode{target/ex-fluentd.tmp}
+\frametitle{You've seen this before}
+\begin{figure}
+    \includegraphics[width=0.9\textwidth]{media/mono-ms-joke.jpg}
+\end{figure}
 \end{frame}
 
 \begin{frame}
-\frametitle{\code{scala-logging} API example}
-\scalacode{target/ex-scala-logging.tmp}
-\end{frame}
+\frametitle{The alternative -- Microservices -- is just sick}
 
-\section{The solution}
-\begin{frame}
-\frametitle{The code\dots}
-\scalacode{target/ex-scala-tree-source.tmp}
-\end{frame}
-
-\begin{frame}
-\frametitle{\dots~is structured}
-\scalacode{target/ex-scala-tree-out.tmp}
-\end{frame}
-
-\begin{frame}
-\frametitle{The code is always structured}
 \begin{itemize}
-\item We have argument names, types and order defined in code,
-\item As well we have some static information about the context -- file, line, etc,
-\item We have static part of our message -- interpolation context or \textit{message template},
-\item We may process our string interpolations with a macro, recover structure and pass it to a logger.
+\item Evil Dependencies and neccessary \textit{Shared State},
+\item Deployment and maintenance becomes more complicated with each new dependency,
+\item Inevitably Distributed: all \textit{fundamental} problems are in place. CAP theorem?,
+\item Cascade failures,
+\item Accidental Incompatibilities: you may notice them too late. Amplified by cascade failures,
+\item Computing Density: 50 JVM microservices in Docker on a single machine? Really?,
+\item Overcomplicated Development Flows: simple (integration\footnotemark[1]) test requires many things done in right order,
+\item Time, interference and reproducible builds: isolated environments are expensive to setup.
+\end{itemize}
+\footnotetext[1]{Not a constructive definition. Subject of another presentation}
+\end{frame}
+
+\begin{frame}
+\frametitle{Observations on Microservices}
+\begin{itemize}
+\item \textit{Software components} are still in place -- in form of Services.
+      All the potential pitfails of component design apply to microservices,
+\item Many checks which may be done by your compiler in case of monolithic design have  
+     to be performed by integration test suites (in case you have them, it's hard to write),   
+\item Many tasks are delegated to operations: in case of a monolith your dependency graph is being 
+      processed by your DI framework, in case of microservices it is\dots in worst case processed by people,
+      in best case requires an orchestration tool. But we don't have any single great tool yet,
+\item An orchestration tool does \textit{exactly the same job} your DI framework may do. And lot more things.
 \end{itemize}
 \end{frame}
 
-\section{The implementation}
+\section{The solution: roles}
+
+\begin{frame}
+\frametitle{Roles: the idea to rescue}
+What we need?
+\begin{itemize}
+\item Something with all the positive traits of Microservices and Monoliths but without negative.
+\end{itemize}
+\vspace{0.3cm}
+So:
+\begin{itemize}
+\item Let's run multiple services\dots in one service. Well, one process,
+\item Let's choose which \textit{roles} we wish to assign to a  before we start it,
+\item It resembles Containers and OSGi,
+\item Containers have some disadvantages. 
+      They provide you a lot so we get used to think that they are sluggish on startup.
+      Isolated classloaders are inconvenient. Dynamic DI is a nightmare,
+\item Let's get rid of Dynamic DI. And let's have isolation optional.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Benefits}
+\begin{itemize}
+\item 
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Missing things and potential pitfails}
+\begin{itemize}
+\item Startup time. Do you remember Tomcat? You have to pay attention to your design -- and there are some recepies\footnotemark[1],
+\item Heterogenous systems: you can't fit C\#, Scala and Go into a single process. 
+      Though you still can greatly improve heterogenous systems by using roles,
+\item Dependency convergence. In case you want roles to be completely independent you need
+      isolated classloaders. Solved in OSGi. Expensive, inconvenient.
+\end{itemize}
+\footnotetext[1]{We have something to add to well-known answers. Subject of another presentation}
+\end{frame}
+
+\section{The implementation: distage}
 
 \begin{frame}
 \begin{figure}
 \Huge 
-\color{RubineRed} L✪GSTAGE
+\color{RubineRed} DISTAGE
 \noindent
 {\color{RubineRed} \rule{\linewidth}{1mm} }
-\Large First-class logging framework for Scala
+\Large Next-gen Dependency Injection Framework for Scala
+\normalsize Generative, Modular, R✪les and Garbage Collection included 
 \end{figure}
 \end{frame}
 
 \begin{frame}
 \frametitle{Quick overview}
 \begin{itemize}
-\item Almost no dependencies,
-\item Compile-time structure and context extraction,
-\item Console and file sinks out of the box, log rotation supported,
-\item Asynchronous sink out of the box (single worker thread at the moment),
-\item String and JSON rendering out of the box,
-\item Automatic structure identifiers for JSON policy,
-\item Modular -- you may implement your own sink, router, etc,
-\item DI-ready, no singletons or classpath scanners,
-\item \textbf{Method}-level granularity,
-\item User-provided logging contexts,
-\item Slf4J backend -- LogStage is a drop-in replacement for Logback, route your legacy logs,
-\item Location hyperlinks for IntelliJ console.
+\item 
 \end{itemize}
 \end{frame}
 
 \begin{frame}
-\frametitle{An example}
-\scalacode{target/ex-scala-logstage.tmp}
-Followed by a cute screenshot of course:
-\begin{figure}
-    \includegraphics[width=\textwidth]{media/logstage-console.png}
-\end{figure}
-\end{frame}
-
-\begin{frame}
-\frametitle{Something nice for our robots}
-\begin{figure}
-    \inputminted[fontsize=\scriptsize]{json}{target/ex-json-out.tmp}
-\end{figure}
-\end{frame}
-
-\begin{frame}
 \frametitle{Status and things to do}
-LogStage is.
+Distage is:
 \begin{itemize}
 \item ready to use,
 \item in real production for 4 months.
@@ -249,17 +191,35 @@ LogStage is.
 \vspace{0.3cm}
 Our plans:
 \begin{itemize}
-\item Declarative router config,
-\item Start using log events to collect metrics (keep in mind, we have derived structure identifiers),
-\item Cleanups and refactorings.
+\item Make Roles opensource. ASAP,
+\item Support optional isolated classloaders (in foreseeable future),
+\item Check our GitHub: https://github.com/pshirshov/izumi-r2.
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{DIStage is just a part of our stack}
+We have a vision backed by our tools:
+\begin{itemize}
+\item Idealingua: transport and codec agnostic GRPC alternative with rich modeling language,
+\item LogStage: zero-cost logging framework,
+\item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
+\item \textit{Continous Delivery} guidelines for Role-based process, 
+\item \textit{Percept-Plan-Execute} Generative Programming approach, abstract machine and computational model.
+Addresses Project Planning (see Operations Research). Examples: orchestration, build systems.
+\end{itemize}
+
+Altogether these things already allowed us to significantly reduce development costs and
+delivery time for our client.\newline
+
+More slides to follow.
 \end{frame}
 
 \begin{frame}
     \frametitle{Thank you for attention}
 
     \begin{center}
-      https://izumi.7mind.io/logstage/
+      https://izumi.7mind.io/distage/
 
       We're looking for clients, contributors, adopters and colleagues ;)
     \end{center}
