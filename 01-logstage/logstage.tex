@@ -135,18 +135,13 @@ Expr(Apply(Select(
 class ExampleService(log: IzLogger) {
   val justAnArg = "example"
   val justAList = List[Any](10, "green", "bottles")
-
+  val msec = Random.nextInt(1000)
   log.trace(s"Argument: $justAnArg, another arg: $justAList")
   log.info(s"Expr: ${Random.nextInt() -> "number"}")
   log.warn(s"Hidden: ${Random.nextInt() -> "number" -> null}")
-
-  val ctxLogger = logger(
-    "userId" -> "user@google.com"
-    , "company" -> "acme"
-  )
-  val msec = Random.nextInt(1000)
-
-  ctxLogger.info(s"Processing time: $msec")
+  val ctxLog = log("userId" -> "user@google.com"
+    , "company" -> "acme")
+  ctxLog.info(s"Processing time: $msec")
 }
 \end{VerbatimOut}
 
@@ -231,10 +226,7 @@ class ExampleService(log: IzLogger) {
 \begin{frame}
 \frametitle{An example}
 \scalacode{target/ex-scala-logstage.tmp}
-\end{frame}
-
-\begin{frame}
-\frametitle{Followed by a cute screenshot of course}
+Followed by a cute screenshot of course:
 \begin{figure}
     \includegraphics[width=\textwidth]{media/logstage-console.png}
 \end{figure}
