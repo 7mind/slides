@@ -64,6 +64,23 @@ texcl=false,
 
 \begin{document}
 
+\begin{VerbatimOut}{ex-scala-roles.tmp}
+@RoleId("testservice")
+class TestService(httpServer: HttpServer) extends IzService {
+  override def start(): Unit = httpServer.start()
+  override def stop(): Unit = httpServer.stop()
+}
+class TestPlugin extends PluginDef {
+  make[IzService].named("testservice").from[TestService]
+}
+object TestLauncher {
+  // you may run it like test.jar test-service other-service
+  def main(args: Array[String]): Unit = {
+    new IzRoleApp().main(args)
+  }
+}
+\end{VerbatimOut}
+
 \begin{frame}
 \titlepage
 \end{frame}
@@ -74,14 +91,16 @@ texcl=false,
 \frametitle{Monoliths are broken}
 We all know that Monoliths aren't nice:
 \begin{itemize}
-\item Inconvenient when your codebase is large: you may need to rebuild to much, etc,
-\item Provoking tight-coupling and non-SOLID code,
+\item Provoke tight-coupling and non-SOLID code,
+\item When you deploy you need to deploy everything (not always a bad thing),
 \item Startup time is usually high,
-\item When you update you need to update everything (maybe not a bad things though),
-\item Issues with ,
-\item Some issues may be kinda mitigated by taking care of artifact structuring,
-      pulling conservative parts out of the main codebase into independent libraries.
+\item Inconvenient when your codebase is large: you may need to rebuild to much, etc,
+\item Dependency convergence.
 \end{itemize}
+
+Structuring, conventions and different enforceable boundaries may mitigate some issues.
+
+Pulling conservative parts out of the main codebase into independent libraries helps.
 \end{frame}
 
 \begin{frame}
@@ -98,10 +117,10 @@ We all know that Monoliths aren't nice:
 \item Evil Dependencies and neccessary \textit{Shared State},
 \item Deployment and maintenance becomes more complicated with each new dependency,
 \item Inevitably Distributed: all \textit{fundamental} problems are in place. CAP theorem?,
-\item Cascade failures,
+\item Cascading failures,
 \item Accidental Incompatibilities: you may notice them too late. Amplified by cascade failures,
 \item Computing Density: 50 JVM microservices in Docker on a single machine? Really?,
-\item Overcomplicated Development Flows: simple (integration\footnotemark[1]) test requires many things done in right order,
+\item Overcomplicated Development Flows: a simple [integration\footnotemark[1]] test requires many things done in right order,
 \item Time, interference and reproducible builds: isolated environments are expensive to setup.
 \end{itemize}
 \footnotetext[1]{Not a constructive definition. Subject of another presentation}
@@ -115,50 +134,65 @@ We all know that Monoliths aren't nice:
 \item Many checks which may be done by your compiler in case of monolithic design have  
      to be performed by integration test suites (in case you have them, it's hard to write),   
 \item Many tasks are delegated to operations: in case of a monolith your dependency graph is being 
-      processed by your DI framework, in case of microservices it is\dots in worst case processed by people,
+      processed by your DI framework\footnotemark[1], in case of microservices it is\dots in worst case processed by people,
       in best case requires an orchestration tool. But we don't have any single great tool yet,
 \item An orchestration tool does \textit{exactly the same job} your DI framework may do. And lot more things.
 \end{itemize}
+\footnotetext[1]{Or an alternative mechanism with the same purpose}
 \end{frame}
 
 \section{The solution: roles}
 
 \begin{frame}
 \frametitle{Roles: the idea to rescue}
-What we need?
-\begin{itemize}
-\item Something with all the positive traits of Microservices and Monoliths but without negative.
-\end{itemize}
+We need something with all the positive traits of Microservices and Monoliths but without negative.
 \vspace{0.3cm}
-So:
 \begin{itemize}
 \item Let's run multiple services\dots in one service. Well, one process,
-\item Let's choose which \textit{roles} we wish to assign to a  before we start it,
+\item Let's choose which \textit{roles} we wish to assign to a before we start it,
+\item Roles come from Classpath, may be discovered dynamically or statically,
 \item It resembles Containers and OSGi,
 \item Containers have some disadvantages. 
       They provide you a lot so we get used to think that they are sluggish on startup.
       Isolated classloaders are inconvenient. Dynamic DI is a nightmare,
-\item Let's get rid of Dynamic DI. And let's have isolation optional.
+\item Let's get rid of Dynamic DI. And let's keep isolation optional.
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Role-based approach}
+\begin{figure}
+    \includegraphics[width=\textwidth]{media/role-based-layout.png}
+\end{figure}
 \end{frame}
 
 \begin{frame}
 \frametitle{Benefits}
 \begin{itemize}
-\item 
+\item Higher Density makes Development Flows better: instant startup of any combination of roles,
+\item Higher Density makes Operations easier: any combination of roles for any container. 
+    You don't need to start 5 containers to have 5 services with low load profile,
+\item Smaller distribution size: Just one image, less traffic,
+\item More static checks $\Rightarrow$ higher reliability,
+\item Easier to setup environments (just run a process) $\Rightarrow$ easier to perform integration testing $\Rightarrow$ higher reliability, quicker delivery,
+\item Quicker builds.
 \end{itemize}
 \end{frame}
 
 \begin{frame}
 \frametitle{Missing things and potential pitfails}
 \begin{itemize}
-\item Startup time. Do you remember Tomcat? You have to pay attention to your design -- and there are some recepies\footnotemark[1],
+\item Startup time. Do you remember Tomcat? Design matters\footnotemark[1],
 \item Heterogenous systems: you can't fit C\#, Scala and Go into a single process. 
       Though you still can greatly improve heterogenous systems by using roles,
 \item Dependency convergence. In case you want roles to be completely independent you need
-      isolated classloaders. Solved in OSGi. Expensive, inconvenient.
+      isolated classloaders. Solved in OSGi. Expensive, inconvenient,
+\item Distributed communication between Roles: most likely you don't want it. Otherwise 
+      you need a mechanism similar to: distrubuted DI framework 
+      built around \textit{Service Discovery} and \textit{Cluster State} concepts. See: \code{dOSGi},
+\item You need to build a nice CD pipeline.
 \end{itemize}
-\footnotetext[1]{We have something to add to well-known answers. Subject of another presentation}
+\footnotetext[1]{We have something to add to well-known recepies. Subject of another presentation}
 \end{frame}
 
 \section{The implementation: distage}
@@ -177,8 +211,26 @@ So:
 \begin{frame}
 \frametitle{Quick overview}
 \begin{itemize}
-\item 
+\item Next generation of DI.
+\item Generative, built on PPER principle. Allows you to plan context provisioning, edit the plan, then execute it,
+\item Fully aware of Scala typesystem, allows you to fuse FP and OOP lot better than before, 
+\item Bundled Garbage Collector,
+\item \textit{Bundled Roles mechanism} built as an extension. Cheap for developer because of Garbage Collection,
+\item Bundled \code{typesafe-config} support built as an extension,
+\item Kind of\dots a new paradigm. We are still discovering patterns and possibilities. Subject of separate presentation.
 \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{How does it look like\footnotemark[1]?}
+\scalacode{target/ex-scala-roles.tmp}
+\footnotetext[1]{Not published on GitHub yet, will be available soon. More details to follow.}
+\end{frame}
+
+\begin{frame}
+\begin{figure}
+    \includegraphics[width=\textwidth]{media/roles-example.png}
+\end{figure}
 \end{frame}
 
 \begin{frame}
@@ -192,6 +244,7 @@ Distage is:
 Our plans:
 \begin{itemize}
 \item Make Roles opensource. ASAP,
+\item Implement a Testkit,
 \item Support optional isolated classloaders (in foreseeable future),
 \item Check our GitHub: https://github.com/pshirshov/izumi-r2.
 \end{itemize}
@@ -201,7 +254,7 @@ Our plans:
 \frametitle{DIStage is just a part of our stack}
 We have a vision backed by our tools:
 \begin{itemize}
-\item Idealingua: transport and codec agnostic GRPC alternative with rich modeling language,
+\item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
 \item LogStage: zero-cost logging framework,
 \item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
 \item \textit{Continous Delivery} guidelines for Role-based process, 
@@ -216,7 +269,7 @@ More slides to follow.
 \end{frame}
 
 \begin{frame}
-    \frametitle{Thank you for attention}
+    \frametitle{Thank you for your attention}
 
     \begin{center}
       https://izumi.7mind.io/distage/
