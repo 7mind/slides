@@ -65,19 +65,18 @@ texcl=false,
 \begin{document}
 
 \begin{VerbatimOut}{ex-scala-roles.tmp}
-@RoleId("testservice")
-class TestService(httpServer: HttpServer) extends IzService {
-  override def start(): Unit = httpServer.start()
-  override def stop(): Unit = httpServer.stop()
+@RoleId("testservice") 
+class TestService[F[_] : Monad](http: HttpSrv[F]) 
+  extends IzService {
+    override def start(): Unit = http.start()
+    override def stop(): Unit = http.stop()
 }
 class TestPlugin extends PluginDef {
-  make[IzService].named("testservice").from[TestService]
+  many[IzService].add[TestService[IO]]
 }
 object TestLauncher {
-  // you may run it like test.jar test-service other-service
-  def main(args: Array[String]): Unit = {
-    new IzRoleApp().main(args)
-  }
+  // you may run it like `test.jar test-service other-service`
+  def main(args: Array[String]): Unit = IzRoleApp(args).main()
 }
 \end{VerbatimOut}
 
@@ -222,9 +221,10 @@ We need something with all the positive traits of Microservices and Monoliths bu
 \end{frame}
 
 \begin{frame}
-\frametitle{How does it look like\footnotemark[1]?}
+\frametitle{How may\footnotemark[1] it look like: Dynamic\footnotemark[2] loader example ?}
 \scalacode{target/ex-scala-roles.tmp}
-\footnotetext[1]{Not published on GitHub yet, will be available soon. More details to follow.}
+\footnotetext[1]{Roles API is not published yet. More details to follow.}
+\footnotetext[2]{Static one is also available.}
 \end{frame}
 
 \begin{frame}
