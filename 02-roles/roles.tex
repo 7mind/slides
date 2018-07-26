@@ -103,6 +103,21 @@ Pulling conservative parts out of the main codebase into independent libraries h
 \end{frame}
 
 \begin{frame}
+\frametitle{We have Microservices}
+Microservices are intended to address Monolithic Design problems.
+\begin{itemize}
+\item They put strict isolation on software components,
+\item Convergence issues are addressed by isolation as well,
+\item They simplify scaling (in case you ``Design Properly''),
+\item You may redeploy independent components,
+\item \dots
+\end{itemize}
+\begin{figure}
+    \Large BUT\dots
+\end{figure}
+\end{frame}
+
+\begin{frame}
 \frametitle{You've seen this before}
 \begin{figure}
     \includegraphics[width=0.9\textwidth]{media/mono-ms-joke.jpg}
@@ -144,7 +159,7 @@ Pulling conservative parts out of the main codebase into independent libraries h
 
 \begin{frame}
 \frametitle{Roles: the idea to rescue}
-We need something with all the positive traits of Microservices and Monoliths but without negative.
+We need something with all the positive traits of Microservices and Monoliths but less negative.
 \vspace{0.3cm}
 \begin{itemize}
 \item Let's run multiple services\dots in one service. Well, one process,
@@ -167,6 +182,7 @@ We need something with all the positive traits of Microservices and Monoliths bu
 
 \begin{frame}
 \frametitle{Benefits}
+Roles allow you to do \textbf{everything} you can do with microservices plus have additional benefits\footnotemark[1]:
 \begin{itemize}
 \item Higher Density makes Development Flows better: instant startup of any combination of roles,
 \item Higher Density makes Operations easier: any combination of roles for any container. 
@@ -176,22 +192,24 @@ We need something with all the positive traits of Microservices and Monoliths bu
 \item Easier to setup environments (just run a process) $\Rightarrow$ easier to perform integration testing $\Rightarrow$ higher reliability, quicker delivery,
 \item Quicker builds.
 \end{itemize}
+\footnotetext[1]{Roles do not solve \textit{all} the issues automagically}
 \end{frame}
 
 \begin{frame}
 \frametitle{Missing things and potential pitfails}
 \begin{itemize}
 \item Startup time. Do you remember Tomcat? Design matters\footnotemark[1],
-\item Heterogenous systems: you can't fit C\#, Scala and Go into a single process. 
-      Though you still can greatly improve heterogenous systems by using roles,
-\item Dependency convergence. In case you want roles to be completely independent you need
-      isolated classloaders. Solved in OSGi. Expensive, inconvenient,
+\item Weaker isolation $\Rightarrow$ more dangerous failures,
+\item Dependency convergence. You may need isolated classloaders\footnotemark[2],
+\item Heterogenous systems: C\#, Scala and Go won't mixn in a single process\footnotemark[3], 
 \item Distributed communication between Roles: most likely you don't want it. Otherwise 
       you need a mechanism similar to: distrubuted DI framework 
       built around \textit{Service Discovery} and \textit{Cluster State} concepts. See: \code{dOSGi},
-\item You need to build a nice CD pipeline.
+\item You need to build a nice Continuous Delivery pipeline.
 \end{itemize}
 \footnotetext[1]{We have something to add to well-known recepies. Subject of another presentation}
+\footnotetext[2]{Addressed in full in OSGi. Isolated Classloaders may be very inconvenient}
+\footnotetext[3]{Though you still can greatly improve heterogenous systems by using roles}
 \end{frame}
 
 \section{The implementation: distage}
