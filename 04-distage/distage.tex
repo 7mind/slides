@@ -13,11 +13,13 @@
     \usepackage{xcolor}
     \usepackage[utf8]{inputenc}
     \usepackage{pifont}    
+    \usepackage{xspace} 
     \usepackage{newunicodechar}
     \newunicodechar{✪}{\ding{74}}
 
     \definecolor{mintedbackground}{rgb}{0.95,0.95,0.95}
     \newcommand{\code}[1]{\colorbox{lightgray}{\texttt{#1}}}
+    \newcommand{\distage}{\texttt{distage}\xspace}
 
 
 \newmintedfile[scalacode]{scala}{
@@ -45,7 +47,7 @@ texcl=false,
     \usetikzlibrary {positioning}
     \graphicspath {{target/media/}}
 
-    \title[DIStage]{DIStage: Modern Staged Dependency Injection for Scala}
+    \title[\distage]{\distage: Modern Staged Dependency Injection for Scala}
 
     \institute[Septimal Mind Ltd]
     {
@@ -68,7 +70,8 @@ texcl=false,
 %   many[IzService].add[TestService[IO]]
 % }
 % object TestLauncher {
-%   // you may run it like `test.jar test-service other-service`
+%   // run with 
+%   // java test.jar test-service other-service
 %   def main(args: Array[String]): Unit = IzRoleApp(args).main()
 % }
 % \end{VerbatimOut}
@@ -77,7 +80,7 @@ texcl=false,
 %\titlepage
 \begin{figure}
 \Huge 
-\color{RubineRed} DIST✪GE
+\color{RubineRed} dist✪ge
 \noindent
 \rule{\linewidth}{1mm}
 \Large Modern Staged Dependency Injection for Scala
@@ -86,7 +89,7 @@ texcl=false,
 
 \begin{figure}
 \color{RubineRed}
-\normalsize Type\-level Modular Code \\
+\normalsize Modular Functional Programming \\
 with \\
 Context Minimization \\
 through \\
@@ -113,27 +116,55 @@ Garbage Collection
 \section{The problem: Dependency Injection and Functional Programming}
 
 \begin{frame}
-\frametitle{The motivation behind DI}
+\frametitle{The motivation behind DI pattern and DI frameworks}
 \begin{itemize}
-\item Systems we work with may be represented as graphs of interlinked components where nodes are components (usually instances) and edges are references,
-\item The graph 
+\item Systems we work with may be represented as graphs. Nodes are components (usually instances), edges are references,
+\item Graph transformation complexity grows non\-linearly with nodes count (need to add one constructor parameter, have to modify $k$ classes),
+\item Graph composition has combinatoric complexity (need to run tests choosing between mock/production repositories and external APIs, have to write four configurations).
+\end{itemize}
+
+We have several possible options to address these problems:
+
+\begin{itemize}
+\item Singletons and Factories: solves tight coupling but expensive tests and refactorings,
+\item Service Locator: bit less coupling but still expensive,
+\item Dependency Injection: less invasive and supports isolation but requires more complex machinery.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{``DI doesn't compose with FP'': Problems}
+\begin{itemize}
+\item Typical DI framework is OOP oriented and does not support advanced concepts required for modern FP (typeclasses, higher\-kinded types),
+\item Almost all the DI frameworks are working in runtime while many modern FP concepts are compile\-time by their nature,
+\item Less guarantees: program which compiles correctly can break on wiring in runtime. After a huge delay,
+\item Wiring is non-determenistic: Guice can spend several minutes trying to re\-instantiate heavy instance multiple times (once per dependency) then fail,
+\item Wiring is opaque: it's hard or impossible to introspect the context. E.g. in Guice it's a real pain to close all the instantiated \texttt{Closeable}s.
+      Adding missing values into the context (config injections) is not trivial as well.
 \end{itemize}
 \end{frame}
 
 \begin{frame}
-\frametitle{``DI doesn't compose with FP''}
+\frametitle{``DI doesn't compose with FP'': Notes}
 \begin{itemize}
-\item 
+\item We have some compile\-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern 
+      though purely compile\-time tools are not convenient when we have to deal with purely runtime entities 
+      (like plugins and config values),
+\item Graph composition problem is not addressed by any existing tool.
 \end{itemize}
 \end{frame}
 
-\section{DIStage: Staged DI for Scala}
+\section{\distage: Staged DI for Scala}
 
 \begin{frame}
-\frametitle{DI implementations are broken}
-So we may build better one:
+\frametitle{DI implementations are broken\dots}
+\dots so we may build better one, which must:
 \begin{itemize}
-\item 
+\item be well\-integrated with type system of our target language (higher\-kinded types, implicits, typeclasses),
+\item allow us to introspect and modify our context on the fly,
+\item be able to detect as many as possible problems quickly, better during compilation,
+\item give us a way to stop making atomic or conditional contexts.
 \end{itemize}
 \end{frame}
 
@@ -219,6 +250,13 @@ So we may build better one:
 \end{frame}
 
 \begin{frame}
+\frametitle{Lambda injection and Parameter Magnet}
+\begin{itemize}
+\item 
+\end{itemize}
+\end{frame}
+
+\begin{frame}
 \frametitle{Code example: IO Injection}
 \begin{itemize}
 \item 
@@ -272,7 +310,7 @@ So we may build better one:
 
 \begin{frame}
 \frametitle{Status and things to do}
-Distage is:
+\distage is:
 \begin{itemize}
 \item ready to use,
 \item in real production,
@@ -292,7 +330,7 @@ Our plans:
 \end{frame}
 
 \begin{frame}
-\frametitle{DIStage is just a part of our stack}
+\frametitle{\distage is just a part of our stack}
 We have a vision backed by our tools:
 \begin{itemize}
 \item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
