@@ -9,7 +9,7 @@
 
     \usepackage{graphicx} % Allows including images
     \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
-    \usepackage{minted}
+    \usepackage[outputdir=target]{minted}
     \usepackage{xcolor}
     \usepackage[utf8]{inputenc}
     \usepackage{pifont}    
@@ -21,26 +21,26 @@
     \newcommand{\code}[1]{\colorbox{lightgray}{\texttt{#1}}}
     \newcommand{\distage}{\texttt{distage}\xspace}
 
-
-\newmintedfile[scalacode]{scala}{
-bgcolor=mintedbackground,
-fontfamily=tt,
-linenos=true,
-numberblanklines=true,
-numbersep=5pt,
-gobble=0,
-frame=leftline,
-framerule=0.4pt,
-framesep=2mm,
-funcnamehighlighting=true,
-tabsize=4,
-obeytabs=false,
-mathescape=false
-samepage=false, %with this setting you can force the list to appear on the same page
-showspaces=false,
-showtabs =false,
-texcl=false,
+\newminted{scala}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
 }
+
     \setminted{fontsize=\footnotesize,baselinestretch=1}
 
     \usepackage {tikz}
@@ -104,55 +104,55 @@ Garbage Collection
 
 \end{frame}
 
-% - Modularity and it's importance 
-% - DI-like mechanisms and their issues, especially in context of Scala (runtime DI is unreliable and does not integrate well with typesystem, compile-time DI may be not flexible enough) 
-% - Why people get used to think that "DI does not compose with functional programming" why is it not correct and why alternatives are not good enough 
-% - How we designed a staged DI which may work in both runtime and compile time 
-% - How we may we improve reliability and get additional guarantees by exploiting staged approach 
-% - Our integration with Scala typesystem 
-% - how we support type tags for type lambdas and how we deal with implicits in runtime - and how may we write modular type-level code (so, we may use DI together with tagless final style, with IO, etc) 
-% - Garbage-collecting DI and how may it help to significantly improve tests and deployments ( related slides: https://github.com/7mind/slides/blob/master/02-roles/target/roles.pdf )
+% - Modularity and its importance
+% - DI-like mechanisms and their issues in Scala
+% - Why people think that "DI doesn't compose with functional programming", and why that's not true
+% - Designing a staged DI, for wiring at runtime, at compile-time, or mixed
+% - Staging programs for reliability, power and performance
+% - The pains of supporting rich Scala types (incl. How to emulate kind-polymorphism in Scala 2)
+% - Garbage collection in DI for better tests and deployments
 
 \section{The problem: Dependency Injection and Functional Programming}
 
 \begin{frame}
 \frametitle{The motivation behind DI pattern and DI frameworks}
-\begin{itemize}
+\begin{enumerate}
 \item Systems we work with may be represented as graphs. Nodes are components (usually instances), edges are references,
 \item Graph transformation complexity grows non\-linearly with nodes count (need to add one constructor parameter, have to modify $k$ classes),
 \item Graph composition has combinatoric complexity (need to run tests choosing between mock/production repositories and external APIs, have to write four configurations).
-\end{itemize}
+// too detached and unappealing
+\end{enumerate}
 
 We have several possible options to address these problems:
 
-\begin{itemize}
+\begin{enumerate}
 \item Singletons and Factories: solves tight coupling but expensive tests and refactorings,
 \item Service Locator: bit less coupling but still expensive,
 \item Dependency Injection: less invasive and supports isolation but requires more complex machinery.
-\end{itemize}
+\end{enumerate}
 
 \end{frame}
 
 \begin{frame}
 \frametitle{``DI doesn't compose with FP'': Problems}
-\begin{itemize}
+\begin{enumerate}
 \item Typical DI framework is OOP oriented and does not support advanced concepts required for modern FP (typeclasses, higher\-kinded types),
 \item Almost all the DI frameworks are working in runtime while many modern FP concepts are compile\-time by their nature,
 \item Less guarantees: program which compiles correctly can break on wiring in runtime. After a huge delay,
 \item Wiring is non-determenistic: Guice can spend several minutes trying to re\-instantiate heavy instance multiple times (once per dependency) then fail,
 \item Wiring is opaque: it's hard or impossible to introspect the context. E.g. in Guice it's a real pain to close all the instantiated \texttt{Closeable}s.
       Adding missing values into the context (config injections) is not trivial as well.
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{``DI doesn't compose with FP'': Notes}
-\begin{itemize}
+\begin{enumerate}
 \item We have some compile\-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern 
       though purely compile\-time tools are not convenient when we have to deal with purely runtime entities 
       (like plugins and config values),
 \item Graph composition problem is not addressed by any existing tool.
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \section{\distage: Staged DI for Scala}
@@ -160,186 +160,211 @@ We have several possible options to address these problems:
 \begin{frame}
 \frametitle{DI implementations are broken\dots}
 \dots so we may build better one, which must:
-\begin{itemize}
+\begin{enumerate}
 \item be well\-integrated with type system of our target language (higher\-kinded types, implicits, typeclasses),
 \item allow us to introspect and modify our context on the fly,
 \item be able to detect as many as possible problems quickly, better during compilation,
 \item give us a way to stop making atomic or conditional contexts.
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Staged approach}
-\begin{itemize}
-\item 
-\end{itemize}
+\begin{enumerate}
+\item Let's apply \textit{Late Binding},
+\item let's collect our graph information first,
+\item then build a DAG representing our context (so-called \textit{Project Network}, let's call it \textit{Plan}),
+\item then analyse this graph for errors (missing references, conflicts),
+\item then apply additional transformations,
+\item then interpret the graph.
+\end{enumerate}
+This is a cornercase of more generic pattern -- PPER (Percept, Plan, Execute, Repeat).
+\end{frame}
+
+\begin{frame}
+\frametitle{Staged approach: outcome}
+What we get:
+\begin{enumerate}
+\item Planner is \textit{pure}: it has no side\-effects,
+\item A plan is a Turing-incomplete program for a simple machine. It will always terminate in known finite time,
+\item An interpreter may perform instantiations at runtime or\dots just generate Scala code that will do that when compiled,
+\item All the job except of instantiations can be done in compile\-time,
+\item Interpreter is free to run independent instantiations in parallel,
+\item Extremely important: we can transform (rewrite) the plan before we run iterpreter.
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Compile-Time and Runtime DI}
-\begin{itemize}
-\item 
-\end{itemize}
+TODO: illustration
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Extension: Configuration Support}
-\begin{itemize}
-\item 
-\end{itemize}
+\begin{scalacode}
+trait T {
+
+}
+\end{scalacode}
+
+\begin{enumerate}
+\item  hi \mint{scala}|val x = 1|
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Pattern: Plan Completion}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{The Principle Behind: PPER}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \subsection{Garbage Collector and its Benefits}
 
 \begin{frame}
 \frametitle{Garbage Collector}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Context Minimization}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Context Minimization for Tests}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Context Minimization for Deployment}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \subsection{Scala Typesystem Integration: Fusional Programming}
 
 \begin{frame}
 \frametitle{Kind-Polymorphic Type Tags}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Typeclass instance injection (Implicit Injection)}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Lambda injection and Parameter Magnet}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Code example: IO Injection}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Code example: Tagless Final Style}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \subsection{Convenience features}
 
 \begin{frame}
 \frametitle{Dynamic Plugins}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Tags}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Plan Introspection}
-\begin{itemize}
+\begin{enumerate}
 \item 
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Trait Completion}
-\begin{itemize}
+\begin{enumerate}
 \item Runtime and Compile-time.
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Factory Methods (Assisted Injection)}
-\begin{itemize}
+\begin{enumerate}
 \item Useful for Akka, lot more convenient than Guice,
 \item Runtime and Compile-time.
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{Status and things to do}
 \distage is:
-\begin{itemize}
+\begin{enumerate}
 \item ready to use,
 \item in real production,
 \item all Runtime APIs are available,
 \item Compile-time verification, trait completion, assisted injections and lambda injections are available.
-\end{itemize}
+\end{enumerate}
 \vspace{0.3cm}
 Our plans:
-\begin{itemize}
+\begin{enumerate}
 \item Refactor Roles API,
 \item Support running Producer within a monad (IO),
 \item Support Scala.js,
 \item Support optional isolated classloaders (in foreseeable future),
 \item Publish compile-time Producer,
 \item Check our GitHub: https://github.com/pshirshov/izumi-r2.
-\end{itemize}
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
 \frametitle{\distage is just a part of our stack}
 We have a vision backed by our tools:
-\begin{itemize}
+\begin{enumerate}
 \item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
 \item LogStage: zero-cost logging framework,
 \item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
 \item \textit{Continous Delivery} guidelines for Role-based process, 
 \item \textit{Percept-Plan-Execute} Generative Programming approach, abstract machine and computational model.
 Addresses Project Planning (see Operations Research). Examples: orchestration, build systems.
-\end{itemize}
+    %  Roles: distributed development without distributed computing
+
+\end{enumerate}
 
 Altogether these things already allowed us to significantly reduce development costs and
 delivery time for our client.\newline
@@ -366,14 +391,14 @@ More slides to follow.
     \end{center}
 
     About the author:
-    \begin{itemize}
+    \begin{enumerate}
         \item coding for 18 years, 10 years of hands-on commercial engineering experience,
         \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
         \item implemented ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
         \item Owns an Irish R\&D company, https://7mind.io,
         \item Contacts: team@7mind.io,
         \item Github: https://github.com/pshirshov
-    \end{itemize}
+    \end{enumerate}
 \end{frame}
 
 \end{document}
