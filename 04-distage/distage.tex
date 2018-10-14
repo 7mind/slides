@@ -199,24 +199,34 @@ What we get:
 TODO: illustration
 \end{frame}
 
-\begin{frame}[fragile]
-\frametitle{Extension: Configuration Support}
-\begin{scalacode}
-trait T {
-
-}
-\end{scalacode}
-
-\begin{enumerate}
-\item  hi \mintinline{scala}{val x = 12}
-\end{enumerate}
-\end{frame}
-
 \begin{frame}
 \frametitle{Pattern: Plan Completion}
 \begin{enumerate}
 \item 
 \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Extension: Configuration Support}
+
+\distage has HOCON configuration support implemented as an extension.
+
+\begin{scalacode}
+case class HostPort(host: String, port: Int)
+
+class HttpServer(@ConfPath("http.listen") listenOn: HostPort) {
+  // ...
+}
+\end{scalacode}
+
+The extension:
+\begin{enumerate}
+\item Takes all the Imports of a Plan,
+\item Searches them for a specific \mintinline{scala}{@ConfPath} annotation,
+\item Tries to find corresponding sections in config,
+\item Extends plan with config values,
+\end{enumerate}
+All the config values are resolved even before the services being instantiated $\Rightarrow$ problems are being shown quickly and all at once.
 \end{frame}
 
 \begin{frame}
