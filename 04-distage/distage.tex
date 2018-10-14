@@ -41,6 +41,25 @@
     texcl=false,
 }
 
+\newminted{text}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
     \setminted{fontsize=\footnotesize,baselinestretch=1}
 
     \usepackage {tikz}
@@ -118,7 +137,7 @@ Garbage Collection
 \frametitle{The motivation behind DI pattern and DI frameworks}
 \begin{enumerate}
 \item Systems we work with may be represented as graphs. Nodes are components (usually instances), edges are references,
-\item Graph transformation complexity grows non\-linearly with nodes count (need to add one constructor parameter, have to modify $k$ classes),
+\item Graph transformation complexity grows non-linearly with nodes count (need to add one constructor parameter, have to modify $k$ classes),
 \item Graph composition has combinatoric complexity (need to run tests choosing between mock/production repositories and external APIs, have to write four configurations).
 %% too detached and unappealing
 \end{enumerate}
@@ -136,10 +155,10 @@ We have several possible options to address these problems:
 \begin{frame}
 \frametitle{``DI doesn't compose with FP'': Problems}
 \begin{enumerate}
-\item Typical DI framework is OOP oriented and does not support advanced concepts required for modern FP (typeclasses, higher\-kinded types),
-\item Almost all the DI frameworks are working in runtime while many modern FP concepts are compile\-time by their nature,
+\item Typical DI framework is OOP oriented and does not support advanced concepts required for modern FP (typeclasses, higher-kinded types),
+\item Almost all the DI frameworks are working in runtime while many modern FP concepts are compile-time by their nature,
 \item Less guarantees: program which compiles correctly can break on wiring in runtime. After a huge delay,
-\item Wiring is non-determenistic: Guice can spend several minutes trying to re\-instantiate heavy instance multiple times (once per dependency) then fail,
+\item Wiring is non-determenistic: Guice can spend several minutes trying to re-instantiate heavy instance multiple times (once per dependency) then fail,
 \item Wiring is opaque: it's hard or impossible to introspect the context. E.g. in Guice it's a real pain to close all the instantiated \texttt{Closeable}s.
       Adding missing values into the context (config injections) is not trivial as well.
 \end{enumerate}
@@ -148,8 +167,8 @@ We have several possible options to address these problems:
 \begin{frame}
 \frametitle{``DI doesn't compose with FP'': Notes}
 \begin{enumerate}
-\item We have some compile\-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern 
-      though purely compile\-time tools are not convenient when we have to deal with purely runtime entities 
+\item We have some compile-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern 
+      though purely compile-time tools are not convenient when we have to deal with purely runtime entities 
       (like plugins and config values),
 \item Graph composition problem is not addressed by any existing tool.
 \end{enumerate}
@@ -161,7 +180,7 @@ We have several possible options to address these problems:
 \frametitle{DI implementations are broken\dots}
 \dots so we may build better one, which must:
 \begin{enumerate}
-\item be well\-integrated with type system of our target language (higher\-kinded types, implicits, typeclasses),
+\item be well-integrated with type system of our target language (higher-kinded types, implicits, typeclasses),
 \item allow us to introspect and modify our context on the fly,
 \item be able to detect as many as possible problems quickly, better during compilation,
 \item give us a way to stop making atomic or conditional contexts.
@@ -185,26 +204,102 @@ This is a cornercase of more generic pattern -- PPER (Percept, Plan, Execute, Re
 \frametitle{Staged approach: outcome}
 What we get:
 \begin{enumerate}
-\item Planner is \textit{pure}: it has no side\-effects,
+\item Planner is \textit{pure}: it has no side-effects,
 \item A plan is a Turing-incomplete program for a simple machine. It will always terminate in known finite time,
 \item An interpreter may perform instantiations at runtime or\dots just generate Scala code that will do that when compiled,
-\item All the job except of instantiations can be done in compile\-time,
+\item All the job except of instantiations can be done in compile-time,
 \item Interpreter is free to run independent instantiations in parallel,
 \item Extremely important: we can transform (rewrite) the plan before we run iterpreter.
 \end{enumerate}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
+\begin{center}
 \frametitle{Compile-Time and Runtime DI}
-TODO: illustration
+A Plan:
+\begin{textcode}
+myRepository := create[MyRepository]()
+myservice    := create[MyService](myRepository)
+\end{textcode}
+
+May be interpreted as:
+
+\begin{columns}
+
+\begin{column}[T]{0.5\textwidth}
+   \setlength{\topsep}{0pt}
+   \setlength{\partopsep}{0pt}
+Code tree (runtime):
+\begin{scalacode}
+val myRepository = 
+    new MyRepository()
+val myservice = 
+    new MyService(myRepository)
+\end{scalacode}
+\end{column}
+
+\begin{column}[T]{0.5\textwidth}
+Set of instances (runtime):
+\begin{scalacode}
+plan.foldLeft(Context.empty) {
+case (ctx, op) =>
+    ctx.withInstance(
+        op.key
+        , interpret(action)
+    )
+}
+\end{scalacode}
+\end{column}
+
+\end{columns}
+\end{center}
 \end{frame}
 
-\begin{frame}
-\frametitle{Pattern: Plan Completion}
-\begin{enumerate}
-\item 
-\end{enumerate}
+\begin{frame}[fragile]
+\frametitle{Incomplete plans}
+This code: 
+\begin{scalacode}
+class UsersRepoImpl(cassandraCluster: Cluster) 
+    extends UsersRepo
+class UsersService(repository: UsersRepo)
+
+class UsersModule extends ModuleDef {
+  make[UsersRepo].from[UsersRepoImpl]
+  make[UsersService]
+}
+\end{scalacode}
+
+May produce a plan like:
+\begin{textcode}
+cassandraCluster     := import[Cluster]
+usersRepo: UsersRepo := create[UsersRepoImpl](cassandraCluster)
+usersService         := create[UsersService](usersRepo)
+\end{textcode}
 \end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Pattern: Plan completion}
+Once we have such a plan:
+\begin{textcode}
+cassandraCluster     := import[Cluster]
+usersRepo: UsersRepo := create[UsersRepoImpl](cassandraCluster)
+usersService         := create[UsersService](usersRepo)
+\end{textcode}
+
+We may add missing values\footnotemark[1]:
+
+\begin{scalacode}
+val plan = Injector.plan(definitions)
+val resolved = plan.map {
+  case i: Import if i.is[Cluster] => 
+    val cluster: Cluster = ???
+    Reference(cluster)
+  case op => op
+}
+\end{scalacode}
+\footnotetext[1]{Pseudocode, real API is bit different}
+\end{frame}
+
 
 \begin{frame}[fragile]
 \frametitle{Extension: Configuration Support}
@@ -230,9 +325,23 @@ All the config values are resolved even before the services being instantiated $
 \end{frame}
 
 \begin{frame}
-\frametitle{The Principle Behind: PPER}
+    \frametitle{The Principle Behind: PPER Loop}  
+    
+    A very generic and a very important pattern:
 \begin{enumerate}
-\item 
+    \item Acquire data from the outer world (\textit{Percept})
+    \item Produce a Project Network, \textit{Plan}. 
+          It may be incomplete, but should allow us to progress (\textit{Plan})
+          \begin{itemize}
+            \item Plan is a DAG where actions are nodes and edges are dependencies       
+          \end{itemize} 
+    \item Execute the Plan (\textit{Execute}). 
+    \begin{itemize}
+        \item Perform the steps of the Plan
+        \item Mark your Plan nodes according to the results of their execution    
+        \item Let's call marked plan as \textit{Trace}
+      \end{itemize} 
+    \item Go to step 1 unless termination criteria reached (\textit{Repeat})
 \end{enumerate}
 \end{frame}
 
