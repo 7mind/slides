@@ -376,15 +376,23 @@ locator.run { (resources: Set[Resource], app: App) =>
 \end{frame}
 
 \begin{frame}
+\frametitle{The Principle Behind: Feedback Loops}
+They use so-called \textit{Feedback Loops} in robotics\dots
+\begin{figure}
+    \includegraphics[width=0.8\textwidth]{media/robots.jpg}
+\end{figure}
+\end{frame}
+
+\begin{frame}
     \frametitle{The Principle Behind: PPER Loop\footnotemark[1]}  
     
-    A very generic and a very important pattern:
+    We found a very generic and important pattern of \textit{Feedback Loop} class:
 \begin{enumerate}
     \item Acquire data from the outer world (\textit{Percept})
     \item Produce a Project Network, \textit{Plan}. 
           It may be incomplete, but should allow us to progress (\textit{Plan})
           \begin{itemize}
-            \item Plan is a DAG where actions are nodes and edges are dependencies       
+            \item Plan is a DAG, actions are nodes, edges are dependencies       
           \end{itemize} 
     \item Execute the Plan (\textit{Execute}). 
     \begin{itemize}
@@ -394,6 +402,7 @@ locator.run { (resources: Set[Resource], app: App) =>
       \end{itemize} 
     \item Go to step 1 unless termination criteria reached (\textit{Repeat})
 \end{enumerate}
+Let's call it \textit{PPER} (and pronounce \textit{pepper}).
 \footnotetext[1]{Slides: https://goo.gl/okZ8Bw}
 \end{frame}
 
