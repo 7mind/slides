@@ -351,7 +351,7 @@ locator.run { (resources: Set[Resource], app: App) =>
 \end{frame}
 
 \begin{frame}
-    \frametitle{The Principle Behind: PPER Loop}  
+    \frametitle{The Principle Behind: PPER Loop\footnotemark[1]}  
     
     A very generic and a very important pattern:
 \begin{enumerate}
@@ -369,6 +369,7 @@ locator.run { (resources: Set[Resource], app: App) =>
       \end{itemize} 
     \item Go to step 1 unless termination criteria reached (\textit{Repeat})
 \end{enumerate}
+\footnotetext[1]{Slides: https://goo.gl/okZ8Bw}
 \end{frame}
 
 \subsection{Garbage Collector and its Benefits}
@@ -388,9 +389,9 @@ the operations it transitively depends on. The rest is being thrown out \textbf{
 
 \begin{frame}
 \frametitle{Garbage Collector and Context Minimization}
-\begin{enumerate}
-\item 
-\end{enumerate}
+\begin{figure}
+    \includegraphics[width=\textwidth]{media/gc-ex.jpg}
+\end{figure}
 \end{frame}
 
 \begin{frame}
@@ -421,7 +422,7 @@ server2# docker run -ti company/product +accounting +users
 laptop# docker run -ti company/product --run-everything
 \end{textcode}
 
-\footnotetext[1]{Presentation: https://goo.gl/iaMt43}
+\footnotetext[1]{Slides: https://goo.gl/iaMt43}
 \end{frame}
 
 \subsection{Scala Typesystem Integration: Fusional Programming}
