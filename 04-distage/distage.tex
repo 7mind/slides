@@ -328,22 +328,24 @@ All the config values are resolved even before the services being instantiated $
 \frametitle{Extension: Automatic Sets}
 
 \begin{enumerate}
-\item \distage can find all the instances of a particular type (like \mintinline{scala}{AutoCloseable}) in the context,
+\item \distage can find all instances type \mintinline{scala}{T} (like \mintinline{scala}{AutoCloseable}) in the context,
 put them all into a \mintinline{scala}{Set[T]} then inject that set.
 \item $\Rightarrow$ basic lifecycle support, free of charge.
 \end{enumerate}
 
 \begin{scalacode}
-trait Component {
+trait Resource {
   def start(): Unit
   def stop(): Unit
 }
-locator.run { components: Set[Component] =>
-    try {
-      components.foreach(_.start())
-    } finally {
-      components.foreach(_.stop())
-    }
+trait App { def main(): Unit }
+locator.run { (resources: Set[Resource], app: App) =>
+  try {
+    resources.foreach(_.start())
+    app.main()
+  } finally {
+    resources.foreach(_.close())
+  }
 }
 \end{scalacode}
 \end{frame}
