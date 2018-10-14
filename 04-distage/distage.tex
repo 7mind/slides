@@ -473,17 +473,64 @@ Fusional Programming
 \end{frame}
 
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Kind-Polymorphic Type Tags}
-\begin{enumerate}
-\item 
-\end{enumerate}
+\begin{columns}
+
+\begin{column}[T]{0.4\textwidth}
+   \setlength{\topsep}{0pt}
+   \setlength{\partopsep}{0pt}
+\begin{itemize}
+\item \distage uses types as lookup keys
+\item But \texttt{scalac} has \texttt{TypeTags} only for kind \texttt{*}!
+\item \distage added any-kinded `Tag`s
+\item Modules can be polymorphic on types of any kind
+\end{itemize}
+\end{column}
+
+\begin{column}[T]{0.6\textwidth}
+\begin{scalacode}
+def m1[F[_]: TagK: Monad, A: Encoder]
+  = new ModuleDef {
+      addImplicit[Encoder[A]]
+      make[SendJson[F, A]]
+    }
+// `Tag` implicit accepts 
+// type parameters of any kind
+def meta[FT[_[_], _]: Tag.auto.T] = 
+  new ModuleDef {
+    make[FT[IO, Int]]
+  }
+\end{scalacode}
+\end{column}
+
+\end{columns}
+\begin{scalacode}
+type TagK[F[_]] = HKTag[{ type Arg[A] = F[A] }]
+type TagKK[F[_, _]] = HKTag[{ type Arg[A, B] = F[A, B] }]
+\end{scalacode}
+\footnotetext[1]{Tag.auto.T macro will be added in next version}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Typeclass instance injection (Implicit Injection)}
 \begin{enumerate}
-\item 
+\item \distage wires \textit{all} parameters, inlcuding implicits
+\item We could leave implicits solely to implicit resolution, but that would've been \textit{unmodular},
+because we want to bind instances \textit{late}, not at definition time
+\item Therefore implicits should be declared explicitly
+\item Tagless-final style is encouraged – add implicit parameters, instead of importing concrete implicits!
+\begin{scalacode}
+def polyModule[F[_]: Sync: TagK] = new ModuleDef {
+  make[Sync[F]].from(implicitly[Sync[F]])
+  make[F[Unit]].named("hello").from(
+    S: Sync[F] => S.delay(println("Hello World!")))
+}
+
+Injector()
+  .produce(polyModule[cats.effect.IO])
+  .get[IO[Unit]]("hello").unsafeRunSync()
+\end{scalacode}
 \end{enumerate}
 \end{frame}
 
@@ -497,21 +544,60 @@ Fusional Programming
 \begin{frame}
 \frametitle{Path-dependant types}
 \begin{enumerate}
-\item 
+\item We can bind functions as constructors
+\item Also, arbitrary functions can run from Locator when available
 \end{enumerate}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Code example: IO Injection}
 \begin{enumerate}
-\item 
+\begin{scalacode}
+trait MonadFilesystem[F[_, _]] {
+  def readFile(fileName: String): F[Exception, String]
+}
+
+class ZioFilesystemModule extends ModuleDef {
+  make[MonadFilesystem[IO]].from(new MonadFilesystem[IO] {
+    def readFile(fileName: String) = 
+      IO.syncException(Source.fromFile(fileName)("UTF-8")
+        .mkString) 
+  })
+}
+
+class GetCpusModule extends ModuleDef {
+  make[IO[Exception, Int]].named("getCpus").from {
+    fs: MonadFilesystem[IO] =>
+      fs.readFile("/proc/cpuinfo").flatMap(...)
+  }
+}
+\end{scalacode}
 \end{enumerate}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Code example: Tagless Final Style}
 \begin{enumerate}
-\item 
+
+\begin{scalacode}
+trait Interaction[F[_]] {
+  def say(msg: String): F[Unit]
+  def ask(prompt: String): F[String]
+}
+
+class TaglessHelloWorld[F[_]: Monad: Interaction] {
+  def program = for {
+      userName <- Interaction[F].ask("What's your name?")
+      _        <- Interaction[F].say(s"Hello $userName!") 
+  } yield ()
+}
+
+val wiring = new ModuleDef {
+  make[TaglessHelloWorld[Try]]
+  make[Interaction[Try]].from(new Interaction[Try] {...})
+}
+\end{scalacode}
+
 \end{enumerate}
 \end{frame}
 
