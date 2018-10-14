@@ -324,6 +324,30 @@ The extension:
 All the config values are resolved even before the services being instantiated $\Rightarrow$ problems are being shown quickly and all at once.
 \end{frame}
 
+\begin{frame}[fragile]
+\frametitle{Extension: Automatic Sets}
+
+\begin{enumerate}
+\item \distage can find all the instances of a particular type (like \mintinline{scala}{AutoCloseable}) in the context,
+put them all into a \mintinline{scala}{Set[T]} then inject that set.
+\item $\Rightarrow$ basic lifecycle support, free of charge.
+\end{enumerate}
+
+\begin{scalacode}
+trait Component {
+  def start(): Unit
+  def stop(): Unit
+}
+locator.run { components: Set[Component] =>
+    try {
+      components.foreach(_.start())
+    } finally {
+      components.foreach(_.stop())
+    }
+}
+\end{scalacode}
+\end{frame}
+
 \begin{frame}
     \frametitle{The Principle Behind: PPER Loop}  
     
