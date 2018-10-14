@@ -348,14 +348,20 @@ All the config values are resolved even before the services being instantiated $
 \subsection{Garbage Collector and its Benefits}
 
 \begin{frame}
-\frametitle{Garbage Collector}
+\frametitle{Garbage Collector and Context Minimization}
 \begin{enumerate}
-\item 
+\item Let's assume that we have a \mintinline{scala}{UsersService} and \mintinline{scala}{AccountingService} 
+      in your context,
+\item \dots and we want to write a test for \mintinline{scala}{UsersService} only,
+\item We may exploit staged design and \textit{collect the garbage} out of Plan before executing it.
+\item We define a \textit{garbage collection root}, \mintinline{scala}{UsersService}, and keep only 
+the operations it transitively depends on. The rest is being thrown out \textbf{even before it's being instantiated},
+\item Garbage Collector allows us to compose contexts easier.
 \end{enumerate}
 \end{frame}
 
 \begin{frame}
-\frametitle{Context Minimization}
+\frametitle{Garbage Collector and Context Minimization}
 \begin{enumerate}
 \item 
 \end{enumerate}
@@ -363,16 +369,33 @@ All the config values are resolved even before the services being instantiated $
 
 \begin{frame}
 \frametitle{Context Minimization for Tests}
+Context minimization allows us to:
 \begin{enumerate}
-\item 
+\item Instantiate only the instances which are required for your tests,
+\item Save on test startup time (savings may be significant),
+\item Save on configuring per-test contexts manually (savings may be substantial).
 \end{enumerate}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Context Minimization for Deployment}
+Context minimization allows us to:
 \begin{enumerate}
-\item 
+\item Have one image with all our software components (\textit{Roles}\footnotemark[1]),
+\item \dots keeping development flows of these components isolated,
+\item Decide which components we want to run when we start the image,
+\item Have higher computational density 
+\item \textit{substantially} simplify development flows: we may run full environment with a single command on a low-end machine, 
+\item Fuse Microservices with Monoliths keeping \textit{all} their benefits.
 \end{enumerate}
+
+\begin{textcode}
+server1# docker run -ti company/product +analytics
+server2# docker run -ti company/product +accounting +users
+laptop# docker run -ti company/product --run-everything
+\end{textcode}
+
+\footnotetext[1]{Presentation: https://goo.gl/iaMt43}
 \end{frame}
 
 \subsection{Scala Typesystem Integration: Fusional Programming}
