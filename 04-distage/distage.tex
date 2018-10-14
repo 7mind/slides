@@ -479,7 +479,14 @@ Fusional Programming
 \end{frame}
 
 \begin{frame}
-\frametitle{Lambda injection and Parameter Magnet}
+\frametitle{Lambda Injection and Parameter Magnet}
+\begin{enumerate}
+\item 
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Path-dependant types}
 \begin{enumerate}
 \item 
 \end{enumerate}
@@ -554,18 +561,109 @@ class AccountingServiceTest extends DistagePluginSpec {
 \end{enumerate}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Tags}
 \begin{enumerate}
-\item 
+\item Each binding may be marked with a \textit{tag},
+\item Some bindings may be excluded from the context before planning by a predicate,
+\item This is unsafe but convenient way to reconfigure contexts conditionally.
 \end{enumerate}
+
+\begin{scalacode}
+class ProductionPlugin extends PluginDef {
+  tag("production", "cassandra")
+  make[UserRepo].from[CassandraUserRepo]
+}
+class MockPlugin extends PluginDef {
+  tag("test", "mock")
+  make[UserRepo].from[MockUserRepo]
+}
+// ...
+val disabledTags = t"mock" && t"dummy"
+val plan = injector.plan(definition.filter(disabledTags))
+\end{scalacode}
+
 \end{frame}
 
 \begin{frame}
-\frametitle{Plan Introspection}
+\frametitle{Circular dependencies}
 \begin{enumerate}
-\item 
+\item Supported, \texttt{Proxy} concept used,
+\item By-name parameters (\mintinline{scala}{class C(param: => P)}) supported, no runtime code-generation requried,
+\item Other cases are supported as well with runtime code-generation,
+\item Limitations: typical. You cannot use an injected parameter immediately in a constructor, 
+   you cannot have circular non-by-name dependencies with final classes,
+\item Circular dependency resolution is optional, you may turn it off.
 \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: example context}
+\begin{scalacode}
+class Cluster
+trait UsersService
+trait AccountingService
+trait UserRepo
+trait AccountsRepo
+
+class UserRepoImpl(cluster: Cluster) extends UserRepo
+class AccountsRepoImpl(cluster: Cluster) extends AccountsRepo
+class UserServiceImpl(userRepo: UserRepo) extends UsersService
+class AccountingServiceImpl(accountsRepo: AccountsRepo) 
+    extends AccountingService
+
+class UsersApiImpl(service: UsersService
+    , accountsApi: AccountsApiImpl)
+class AccountsApiImpl(service: AccountingService
+    , usersApi: UsersApiImpl) // circular dependency
+class App(uapi: UsersApiImpl, aapi: AccountsApiImpl)
+\end{scalacode}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: example bindings\footnotemark[1]}
+\begin{scalacode}
+val definition = new ModuleDef {
+    make[Cluster]
+    make[UserRepo].from[UserRepoImpl]
+    make[AccountsRepo].from[AccountsRepoImpl]
+    make[UsersService].from[UserServiceImpl]
+    make[AccountingService].from[AccountingServiceImpl]
+    make[UsersApiImpl]
+    make[AccountsApiImpl]
+    make[App]
+}
+val injector = Injector()
+val plan = injector.plan(definition)
+\end{scalacode}
+\footnotetext[1]{TODO}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: plan dumps}
+\begin{scalacode}
+println(plan.render) // look for the circular dependency!
+\end{scalacode}
+
+\begin{figure}
+    \includegraphics[width=0.75\textwidth]{media/plan-example.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: dependency trees}
+You may explore dependencies of a component:
+
+\begin{scalacode}
+val dependencies = plan.topology.dependencies
+println(dependencies.tree(DIKey.get[AccountsApiImpl]))
+\end{scalacode}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{media/dependency-tree.png}
+\end{figure}
+
+Circular dependencies are specifically marked.
 \end{frame}
 
 \begin{frame}[fragile]
