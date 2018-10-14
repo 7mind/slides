@@ -60,6 +60,27 @@
     showtabs =false,
     texcl=false,
 }
+
+\newminted{json}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
+
     \setminted{fontsize=\footnotesize,baselinestretch=1}
 
     \usepackage {tikz}
@@ -584,12 +605,48 @@ delivery time for our client.\newline
 More slides to follow.
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Teaser: LogStage}
+A log call \dots
+\begin{scalacode}
+log.info(s"$user logged in with $sessionId!")
+\end{scalacode}
+
+\dots may be rendered as a text like \texttt{17:05:18 UserService.login user=John Doe logged in with sessionId=DEADBEEF!}
+
+\dots or a structured JSON:
+\begin{jsoncode}
+{
+  "user": "John Doe",
+  "sessionId": "DEADBEEF",
+  "_template": "$user logged in with $sessionId!",
+  "_location": "UserService.scala:265",
+  "_context": "UserService.login",
+}
+\end{jsoncode}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Teaser: Idealingua}
+\begin{textcode}
+id UserId { uid: str }
+data User {  name: str /* ... fields */ }
+data PublicUser {
+ + InternalUser
+ - SecurityAttributes 
+}
+adt Failure = NotFound | UnknownFailure
+service Service {
+  def getUser(id: UserId): User !! Failure
+}
+\end{textcode}
+
+\begin{enumerate}
+\item Convenient Data and Interface Definition Language,
+\item Transport-agnostic, wire format-agnostic (Json over HTTP and WebSocket at the moment),
+\item C\#, go, Scala, TypeScript at the moment,
+\item Extensible, packed with feautres.
+\end{enumerate}
 \end{frame}
 
 \begin{frame}
