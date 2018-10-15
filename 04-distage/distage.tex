@@ -516,7 +516,7 @@ type TagKK[F[_, _]] = HKTag[{ type Arg[A, B] = F[A, B] }]
 \frametitle{Typeclass instance injection (Implicit Injection)}
 \begin{enumerate}
 \item \distage wires \textit{all} parameters, inlcuding implicits
-\item We could leave implicits solely to implicit resolution, but that would've been \textit{unmodular},
+\item Leaving implicits solely to implicit resolution would've been \textit{unmodular},
 because we want to bind instances \textit{late}, not at definition time
 \item Therefore implicits should be declared explicitly
 \item Tagless-final style is encouraged – add implicit parameters, instead of importing concrete implicits!
@@ -526,7 +526,6 @@ def polyModule[F[_]: Sync: TagK] = new ModuleDef {
   make[F[Unit]].named("hello").from(
     S: Sync[F] => S.delay(println("Hello World!")))
 }
-
 Injector()
   .produce(polyModule[cats.effect.IO])
   .get[IO[Unit]]("hello").unsafeRunSync()
@@ -534,19 +533,26 @@ Injector()
 \end{enumerate}
 \end{frame}
 
-\begin{frame}
-\frametitle{Lambda Injection and Parameter Magnet}
-\begin{enumerate}
-\item 
-\end{enumerate}
-\end{frame}
-
-\begin{frame}
-\frametitle{Path-dependant types}
+\begin{frame}[fragile]
+\frametitle{Lambda Injection, ProviderMagnet}
 \begin{enumerate}
 \item We can bind functions as constructors
-\item Also, arbitrary functions can run from Locator when available
+\item Arbitrary-arity functions can run with arguments from Locator
+\item Put annotations on types to summon named instances or config values (from \textt{distage-config})
 \end{enumerate}
+\begin{scalacode}
+case class A()
+case class B(a: A)
+val ctx: Locator = Injector(config).produce(new ModuleDef { 
+  make[A].from(() => A())
+  make[B].from(B(_))
+})
+case class C(a: A, b: B, host: HostPort)
+val c: C = ctx.run {
+  (a: A, b: B, host: HostPort @ConfPath("http.listen")) =>
+    C(a, b, host)
+}
+\end{scalacode}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -599,6 +605,30 @@ val wiring = new ModuleDef {
 \end{scalacode}
 
 \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Path-dependant types}
+\begin{enumerate}
+\item Path-dependent types and projections are supported
+\item Path-prefix should be wired for the child type to be wired
+\end{enumerate}
+\begin{scalacode}
+trait Cake { trait Child }
+
+val cakeModule = new ModuleDef {
+  make[Cake]
+  make[Cake#Child]
+}
+val cake = Injector().produce(cakeModule).get[Cake]
+
+val instanceCakeModule = new ModuleDef {
+  make[cake.type].from[cake.type](cake: cake.type)
+  make[cake.Child]
+}
+val cakeChild = Injector().produce(instanceCakeModule)
+  .get[cake.Child]
+\end{scalacode}
 \end{frame}
 
 \subsection{Features to boost productivity}
