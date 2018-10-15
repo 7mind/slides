@@ -537,8 +537,8 @@ Injector()
 \frametitle{Lambda Injection, ProviderMagnet}
 \begin{enumerate}
 \item We can bind functions as constructors
-\item Arbitrary-arity functions can run with arguments from Locator
-\item Put annotations on types to summon named instances or config values (from \textt{distage-config})
+\item Arbitrary\-arity functions can run with arguments from Locator
+\item Put annotations on types to summon named instances or config values (from \texttt{distage\-config})
 \end{enumerate}
 \begin{scalacode}
 case class A()
@@ -941,7 +941,10 @@ service Service {
 
 \begin{enumerate}
 \item Convenient Data and Interface Definition Language,
-\item Extensible, transport-agnostic, abstracted from wire format,
+\item Extensible, transport\-agnostic, abstracted from wire format,
+\item Server\-to\-Server, Server\-to\-Client \& Client\-to\-Server communication,
+\item Bifunctor Error Model, Strongly typed API calls \- no longer remove type safety with microservices!
+\item <IMG>twitter microservices are a great way to remove typesafety</IMG>
 \item JSON + HTTP / WebSocket at the moment,
 \item C\#, go, Scala, TypeScript at the moment,
 \item Better than gRPC/ REST / Swagger/ etc.
