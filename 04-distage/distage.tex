@@ -492,15 +492,15 @@ Fusional Programming
 \begin{scalacode}
 def m1[F[_]: TagK: Monad, A: Encoder]
   = new ModuleDef {
-      addImplicit[Encoder[A]]
       make[SendJson[F, A]]
-    }
+      addImplicit[Encoder[A]]
+      addImplicit[Monad[F]]
+      make[Network[F]].from(...) }
 // `Tag` implicit accepts
 // type parameters of any kind
-def meta[FT[_[_], _]: Tag.auto.T] =
-  new ModuleDef {
-    make[FT[IO, Int]]
-  }
+def mTrans[FT[_[_], _]: Tag.auto.T] =
+  m1[FT[IO], AccountReport]
+mTrans[OptionT]
 \end{scalacode}
 \end{column}
 
@@ -527,8 +527,60 @@ def polyModule[F[_]: Sync: TagK] = new ModuleDef {
     S: Sync[F] => S.delay(println("Hello World!")))
 }
 Injector()
-  .produce(polyModule[cats.effect.IO])
+  .produce(polyModule[IO])
   .get[IO[Unit]]("hello").unsafeRunSync()
+\end{scalacode}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Code example: Tagless Final Style}
+\begin{enumerate}
+
+\begin{scalacode}
+trait Interaction[F[_]] {
+  def say(msg: String): F[Unit]
+  def ask(prompt: String): F[String] }
+
+class TaglessHelloWorld[F[_]: Monad: Interaction] {
+  val program = for {
+      userName <- Interaction[F].ask("What's your name?")
+      _        <- Interaction[F].say(s"Hello $userName!")
+  } yield () }
+
+def wiring[F[_]: TagK: Sync] = new ModuleDef {
+  make[TaglessHelloWorld[F]]
+  make[Interaction[F]].from(new Interaction[F] {...})
+  addImplicit[Monad[F]] }
+
+Injector().produce(wiring[IO]).get[TaglessHelloWorld[IO]]
+  .program.unsafeRunSync()
+\end{scalacode}
+
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Code example: Scalaz ZIO Injection}
+\begin{enumerate}
+\begin{scalacode}
+trait MonadFilesystem[F[_, _]] {
+  def readFile(fileName: String): F[Exception, String]
+}
+
+class ZioFilesystemModule extends ModuleDef {
+  make[MonadFilesystem[IO]].from(new MonadFilesystem[IO] {
+    def readFile(fileName: String) =
+      IO.syncException(Source.fromFile(fileName)("UTF-8")
+        .mkString)
+  })
+  make[GetCpus[IO]]
+}
+
+class GetCpus(fs: MonadFilesystem[IO]) {
+  def apply(): IO[Exception, Int] = 
+    fs.readFile("/proc/cpuinfo").flatMap(...)
+}
 \end{scalacode}
 \end{enumerate}
 \end{frame}
@@ -542,10 +594,10 @@ Injector()
 \end{enumerate}
 \begin{scalacode}
 case class A()
-case class B(a: A)
+case class B(a: A, default: Int = 5)
 val ctx: Locator = Injector(config).produce(new ModuleDef {
-  make[A].from(() => A())
-  make[B].from(B(_))
+  make[A].from(A())
+  make[B].from{ a: A => B(a) }
 })
 case class C(a: A, b: B, host: HostPort)
 val c: C = ctx.run {
@@ -553,58 +605,6 @@ val c: C = ctx.run {
     C(a, b, host)
 }
 \end{scalacode}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Code example: IO Injection}
-\begin{enumerate}
-\begin{scalacode}
-trait MonadFilesystem[F[_, _]] {
-  def readFile(fileName: String): F[Exception, String]
-}
-
-class ZioFilesystemModule extends ModuleDef {
-  make[MonadFilesystem[IO]].from(new MonadFilesystem[IO] {
-    def readFile(fileName: String) =
-      IO.syncException(Source.fromFile(fileName)("UTF-8")
-        .mkString)
-  })
-}
-
-class GetCpusModule extends ModuleDef {
-  make[IO[Exception, Int]].named("getCpus").from {
-    fs: MonadFilesystem[IO] =>
-      fs.readFile("/proc/cpuinfo").flatMap(...)
-  }
-}
-\end{scalacode}
-\end{enumerate}
-\end{frame}
-
-\begin{frame}[fragile]
-\frametitle{Code example: Tagless Final Style}
-\begin{enumerate}
-
-\begin{scalacode}
-trait Interaction[F[_]] {
-  def say(msg: String): F[Unit]
-  def ask(prompt: String): F[String]
-}
-
-class TaglessHelloWorld[F[_]: Monad: Interaction] {
-  def program = for {
-      userName <- Interaction[F].ask("What's your name?")
-      _        <- Interaction[F].say(s"Hello $userName!")
-  } yield ()
-}
-
-val wiring = new ModuleDef {
-  make[TaglessHelloWorld[Try]]
-  make[Interaction[Try]].from(new Interaction[Try] {...})
-}
-\end{scalacode}
-
-\end{enumerate}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -968,6 +968,7 @@ service Service {
         \item Owns an Irish R\&D company, https://7mind.io,
         \item Contact: team@7mind.io,
         \item Github: https://github.com/pshirshov
+        \item Download slides: https://github.com/7mind/slides/
     \end{enumerate}
 \end{frame}
 
