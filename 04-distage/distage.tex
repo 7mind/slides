@@ -12,8 +12,8 @@
     \usepackage[outputdir=target]{minted}
     \usepackage{xcolor}
     \usepackage[utf8]{inputenc}
-    \usepackage{pifont}    
-    \usepackage{xspace} 
+    \usepackage{pifont}
+    \usepackage{xspace}
     \usepackage{newunicodechar}
     \newunicodechar{✪}{\ding{74}}
 
@@ -100,8 +100,8 @@
 \begin{document}
 
 % \begin{VerbatimOut}{ex-scala-roles.tmp}
-% @RoleId("testservice") 
-% class TestService[F[_] : Monad](http: HttpSrv[F]) 
+% @RoleId("testservice")
+% class TestService[F[_] : Monad](http: HttpSrv[F])
 %   extends IzService {
 %     override def start(): Unit = http.start()
 %     override def stop(): Unit = http.stop()
@@ -110,7 +110,7 @@
 %   many[IzService].add[TestService[IO]]
 % }
 % object TestLauncher {
-%   // run with 
+%   // run with
 %   // java test.jar test-service other-service
 %   def main(args: Array[String]): Unit = IzRoleApp(args).main()
 % }
@@ -119,7 +119,7 @@
 \begin{frame}
 %\titlepage
 \begin{figure}
-\Huge 
+\Huge
 \color{RubineRed} dist✪ge
 \noindent
 \rule{\linewidth}{1mm}
@@ -150,7 +150,7 @@ Garbage Collection
 \frametitle{The motivation behind DI pattern and DI frameworks}
 \begin{enumerate}
 \item Systems we work with may be represented as graphs. Nodes are components (usually instances), edges are references,
-\item Graph transformation complexity grows non-linearly with nodes count (need to add one constructor parameter, have to modify $k$ classes),
+\item Graph transformation complexity grows non-linearly with node count (need to add one constructor parameter, have to modify $k$ classes),
 \item Graph composition has combinatoric complexity (need to run tests choosing between mock/production repositories and external APIs, have to write four configurations).
 \end{enumerate}
 
@@ -179,8 +179,8 @@ We have several possible options to address these problems:
 \begin{frame}
 \frametitle{``DI doesn't compose with FP'': Notes}
 \begin{enumerate}
-\item We have some compile-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern 
-      though purely compile-time tools are not convenient when we have to deal with purely runtime entities 
+\item We have some compile-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern
+      though purely compile-time tools are not convenient when we have to deal with purely runtime entities
       (like plugins and config values),
 \item Graph composition problem is not addressed by any existing tool.
 \end{enumerate}
@@ -220,7 +220,7 @@ What we get:
 \item Planner is \textit{pure}: it has no side-effects,
 \item A plan is a Turing-incomplete program for a simple machine. It will always terminate in known finite time,
 \item An interpreter may perform instantiations at runtime or\dots just generate Scala code that will do that when compiled,
-\item All the job except of instantiations can be done in compile-time,
+\item All the job except for instantiations can be done in compile-time,
 \item Interpreter is free to run independent instantiations in parallel,
 \item Extremely important: we can transform (rewrite) the plan before we run iterpreter.
 \end{enumerate}
@@ -244,9 +244,9 @@ May be interpreted as:
    \setlength{\partopsep}{0pt}
 Code tree (compile-time):
 \begin{scalacode}
-val myRepository = 
+val myRepository =
     new MyRepository()
-val myservice = 
+val myservice =
     new MyService(myRepository)
 \end{scalacode}
 \end{column}
@@ -270,9 +270,9 @@ case (ctx, op) =>
 
 \begin{frame}[fragile]
 \frametitle{Incomplete plans}
-This code: 
+This code:
 \begin{scalacode}
-class UsersRepoImpl(cassandraCluster: Cluster) 
+class UsersRepoImpl(cassandraCluster: Cluster)
     extends UsersRepo
 class UsersService(repository: UsersRepo)
 
@@ -293,7 +293,7 @@ usersService         := create[UsersService](usersRepo)
 \subsection{patterns and Extensions}
 \begin{frame}
 \begin{figure}
-\Huge 
+\Huge
 \color{RubineRed} dist✪ge
 \noindent
 \rule{\linewidth}{1mm}
@@ -316,7 +316,7 @@ We may add missing values\footnotemark[1]:
 \begin{scalacode}
 val plan = Injector.plan(definitions)
 val resolved = plan.map {
-  case i: Import if i.is[Cluster] => 
+  case i: Import if i.is[Cluster] =>
     val cluster: Cluster = ???
     Reference(cluster)
   case op => op
@@ -346,7 +346,7 @@ The extension:
 \item Tries to find corresponding sections in config,
 \item Extends plan with config values,
 \end{enumerate}
-All the config values are resolved even before the services being instantiated $\Rightarrow$ problems are being shown quickly and all at once.
+All the config values are resolved even before instantiation of services $\Rightarrow$ problems are being shown quickly and all at once.
 \end{frame}
 
 \begin{frame}[fragile]
@@ -384,25 +384,25 @@ They use so-called \textit{Feedback Loops} in robotics\dots
 \end{frame}
 
 \begin{frame}
-    \frametitle{The Principle Behind: PPER Loop\footnotemark[1]}  
-    
+    \frametitle{The Principle Behind: PPER Loop\footnotemark[1]}
+
     We found a very generic and important pattern of \textit{Feedback Loop} class:
 \begin{enumerate}
     \item Acquire data from the outer world (\textit{Percept})
-    \item Produce a Project Network, \textit{Plan}. 
+    \item Produce a Project Network, \textit{Plan}.
           It may be incomplete, but should allow us to progress (\textit{Plan})
           \begin{itemize}
-            \item Plan is a DAG, actions are nodes, edges are dependencies       
-          \end{itemize} 
-    \item Execute the Plan (\textit{Execute}). 
+            \item Plan is a DAG, actions are nodes, edges are dependencies
+          \end{itemize}
+    \item Execute the Plan (\textit{Execute}).
     \begin{itemize}
         \item Perform the steps of the Plan
-        \item Mark your Plan nodes according to the results of their execution    
+        \item Mark your Plan nodes according to the results of their execution
         \item Let's call marked plan as \textit{Trace}
-      \end{itemize} 
+      \end{itemize}
     \item Go to step 1 unless termination criteria reached (\textit{Repeat})
 \end{enumerate}
-Let's call it \textit{PPER} (and pronounce \textit{pepper}).
+Let's call it \textit{PPER} (pronounced: \textit{pepper}).
 \footnotetext[1]{Slides: https://goo.gl/okZ8Bw}
 \end{frame}
 
@@ -411,11 +411,11 @@ Let's call it \textit{PPER} (and pronounce \textit{pepper}).
 \begin{frame}
 \frametitle{Garbage Collector and Context Minimization}
 \begin{enumerate}
-\item Let's assume that we have a \mintinline{scala}{UsersService} and \mintinline{scala}{AccountingService} 
+\item Let's assume that we have a \mintinline{scala}{UsersService} and \mintinline{scala}{AccountingService}
       in your context,
 \item \dots and we want to write a test for \mintinline{scala}{UsersService} only,
 \item We may exploit staged design and \textit{collect the garbage} out of Plan before executing it.
-\item We define a \textit{garbage collection root}, \mintinline{scala}{UsersService}, and keep only 
+\item We define a \textit{garbage collection root}, \mintinline{scala}{UsersService}, and keep only
 the operations it transitively depends on. The rest is being thrown out \textbf{even before it's being instantiated},
 \item Garbage Collector allows us to compose contexts easier.
 \end{enumerate}
@@ -445,8 +445,8 @@ Context minimization allows us to:
 \item Have one image with all our software components (\textit{Roles}\footnotemark[1]),
 \item \dots keeping development flows of these components isolated,
 \item Decide which components we want to run when we start the image,
-\item Have higher computational density 
-\item \textit{substantially} simplify development flows: we may run full environment with a single command on a low-end machine, 
+\item Have higher computational density
+\item \textit{substantially} simplify development flows: we may run full environment with a single command on a low-end machine,
 \item Fuse Microservices with Monoliths keeping \textit{all} their benefits.
 \end{enumerate}
 
@@ -462,7 +462,7 @@ laptop# docker run -ti company/product --run-everything
 \subsection{Scala Typesystem Integration: Fusional Programming}
 \begin{frame}
 \begin{figure}
-\Huge 
+\Huge
 \color{RubineRed} dist✪ge
 \noindent
 \rule{\linewidth}{1mm}
@@ -495,9 +495,9 @@ def m1[F[_]: TagK: Monad, A: Encoder]
       addImplicit[Encoder[A]]
       make[SendJson[F, A]]
     }
-// `Tag` implicit accepts 
+// `Tag` implicit accepts
 // type parameters of any kind
-def meta[FT[_[_], _]: Tag.auto.T] = 
+def meta[FT[_[_], _]: Tag.auto.T] =
   new ModuleDef {
     make[FT[IO, Int]]
   }
@@ -543,7 +543,7 @@ Injector()
 \begin{scalacode}
 case class A()
 case class B(a: A)
-val ctx: Locator = Injector(config).produce(new ModuleDef { 
+val ctx: Locator = Injector(config).produce(new ModuleDef {
   make[A].from(() => A())
   make[B].from(B(_))
 })
@@ -565,9 +565,9 @@ trait MonadFilesystem[F[_, _]] {
 
 class ZioFilesystemModule extends ModuleDef {
   make[MonadFilesystem[IO]].from(new MonadFilesystem[IO] {
-    def readFile(fileName: String) = 
+    def readFile(fileName: String) =
       IO.syncException(Source.fromFile(fileName)("UTF-8")
-        .mkString) 
+        .mkString)
   })
 }
 
@@ -594,7 +594,7 @@ trait Interaction[F[_]] {
 class TaglessHelloWorld[F[_]: Monad: Interaction] {
   def program = for {
       userName <- Interaction[F].ask("What's your name?")
-      _        <- Interaction[F].say(s"Hello $userName!") 
+      _        <- Interaction[F].say(s"Hello $userName!")
   } yield ()
 }
 
@@ -634,7 +634,7 @@ val cakeChild = Injector().produce(instanceCakeModule)
 \subsection{Features to boost productivity}
 \begin{frame}
 \begin{figure}
-\Huge 
+\Huge
 \color{RubineRed} dist✪ge
 \noindent
 \rule{\linewidth}{1mm}
@@ -660,7 +660,7 @@ val plugins = new PluginLoaderDefaultImpl(
 // ... pass to an Injector
 \end{scalacode}
 \begin{enumerate}
-\item Useful while you prototyping your app,
+\item Useful while you are prototyping your app,
 \item In maintenance phase you may switch to static configuration.
 \end{enumerate}
 \end{frame}
@@ -716,7 +716,7 @@ val plan = injector.plan(definition.filter(disabledTags))
 \item Supported, \texttt{Proxy} concept used,
 \item By-name parameters (\mintinline{scala}{class C(param: => P)}) supported, no runtime code-generation requried,
 \item Other cases are supported as well with runtime code-generation,
-\item Limitations: typical. You cannot use an injected parameter immediately in a constructor, 
+\item Limitations: typical. You cannot use an injected parameter immediately in a constructor,
    you cannot have circular non-by-name dependencies with final classes,
 \item Circular dependency resolution is optional, you may turn it off.
 \end{enumerate}
@@ -734,7 +734,7 @@ trait AccountsRepo
 class UserRepoImpl(cluster: Cluster) extends UserRepo
 class AccountsRepoImpl(cluster: Cluster) extends AccountsRepo
 class UserServiceImpl(userRepo: UserRepo) extends UsersService
-class AccountingServiceImpl(accountsRepo: AccountsRepo) 
+class AccountingServiceImpl(accountsRepo: AccountsRepo)
     extends AccountingService
 
 class UsersApiImpl(service: UsersService
@@ -796,13 +796,13 @@ Circular dependencies are specifically marked.
 \begin{scalacode}
 trait UsersService {
   protected def repository: UsersRepo
-  def add(user: User): Unit = { 
+  def add(user: User): Unit = {
     repository.put(user.id, user)
     ???
   }
 }
 \end{scalacode}
-We may bind this trait directly, without an implementating class:
+We may bind this trait directly, without an implementation class:
 
 \begin{scalacode}
 make[UsersService]
@@ -839,7 +839,7 @@ trait ActorFactory {
 \subsection{7mind Stack}
 \begin{frame}
 \begin{figure}
-\Huge 
+\Huge
 \color{RubineRed} dist✪ge
 \noindent
 \rule{\linewidth}{1mm}
@@ -876,7 +876,7 @@ We have a vision backed by our tools:
 \item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
 \item LogStage: zero-cost logging framework,
 \item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
-\item \textit{Continous Delivery} guidelines for Role-based process, 
+\item \textit{Continous Delivery} guidelines for Role-based process,
 \item \textit{Percept-Plan-Execute} Generative Programming approach, abstract machine and computational model.
 Addresses Project Planning (see Operations Research). Examples: orchestration, build systems.
     %  Roles: distributed development without distributed computing
@@ -931,7 +931,7 @@ id UserId { uid: str }
 data User {  name: str /* ... more fields */ }
 data PublicUser {
  + InternalUser
- - SecurityAttributes 
+ - SecurityAttributes
 }
 adt Failure = NotFound | UnknownFailure
 service Service {
@@ -966,7 +966,7 @@ service Service {
         \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
         \item implemented ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
         \item Owns an Irish R\&D company, https://7mind.io,
-        \item Contacts: team@7mind.io,
+        \item Contact: team@7mind.io,
         \item Github: https://github.com/pshirshov
     \end{enumerate}
 \end{frame}
