@@ -482,7 +482,7 @@ Fusional Programming
    \setlength{\partopsep}{0pt}
 \begin{itemize}
 \item \distage uses types as lookup keys
-\item But \texttt{scalac} has \texttt{TypeTags} only for kind \texttt{*}!
+\item But \texttt{scalac} has \texttt{TypeTags} only for kind \texttt{"*"}!
 \item \distage added any-kinded `Tag`s
 \item Modules can be polymorphic on types of any kind
 \end{itemize}
@@ -497,7 +497,7 @@ def m1[F[_]: TagK: Monad, A: Encoder]
       addImplicit[Monad[F]]
       make[Network[F]].from(...) }
 // `Tag` implicit accepts
-// type parameters of any kind
+// type parameters of arbitrary kind
 def mTrans[FT[_[_], _]: Tag.auto.T] =
   m1[FT[IO], AccountReport]
 mTrans[OptionT]
@@ -508,8 +508,8 @@ mTrans[OptionT]
 \begin{scalacode}
 type TagK[F[_]] = HKTag[{ type Arg[A] = F[A] }]
 type TagKK[F[_, _]] = HKTag[{ type Arg[A, B] = F[A, B] }]
+type Tag.auto.T[F[...]] = HKTag[{ type Arg[...] = F[...] }]
 \end{scalacode}
-\footnotetext[1]{Tag.auto.T macro will be added in next version}
 \end{frame}
 
 \begin{frame}[fragile]
