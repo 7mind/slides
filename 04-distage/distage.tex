@@ -196,6 +196,7 @@ We have several possible options to address these problems:
 \item be well-integrated with type system of our target language (higher-kinded types, implicits, typeclasses),
 \item allow us to introspect and modify our context on the fly,
 \item be able to detect as many as possible problems quickly, better during compilation,
+\item still allow us to deal conveniently with runtime entities,
 \item give us a way to stop making atomic or conditional contexts.
 \end{enumerate}
 \end{frame}
@@ -204,7 +205,7 @@ We have several possible options to address these problems:
 \frametitle{Staged approach}
 \begin{enumerate}
 \item Let's apply \textit{Late Binding},
-\item let's collect our graph information first,
+\item let's collect our context information (bindings) first,
 \item then build a DAG representing our context (so-called \textit{Project Network}, let's call it \textit{Plan}),
 \item then analyse this graph for errors (missing references, conflicts),
 \item then apply additional transformations,
