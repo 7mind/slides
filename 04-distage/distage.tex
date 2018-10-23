@@ -179,9 +179,8 @@ We have several possible options to address these problems:
 \begin{frame}
 \frametitle{``DI doesn't compose with FP'': Notes}
 \begin{enumerate}
-\item We have some compile-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern
-      though purely compile-time tools are not convenient when we have to deal with purely runtime entities
-      (like plugins and config values),
+\item We have some compile-time DI frameworks or mechanisms (see \texttt{MacWire}) allowing us to implement DI as pattern,
+\item purely compile-time tools are not convenient: sometimes we have to deal with purely runtime entities (like plugins and config values),
 \item Graph composition problem is not addressed by any existing tool.
 \end{enumerate}
 \end{frame}
@@ -199,6 +198,13 @@ We have several possible options to address these problems:
 \item still allow us to deal conveniently with runtime entities,
 \item give us a way to stop making atomic or conditional contexts.
 \end{enumerate}
+
+\begin{figure}
+We made it, it works.
+
+\Large
+\color{RubineRed} dist✪ge
+\end{figure}
 \end{frame}
 
 \begin{frame}
@@ -579,7 +585,7 @@ class ZioFilesystemModule extends ModuleDef {
 }
 
 class GetCpus(fs: MonadFilesystem[IO]) {
-  def apply(): IO[Exception, Int] = 
+  def apply(): IO[Exception, Int] =
     fs.readFile("/proc/cpuinfo").flatMap(...)
 }
 \end{scalacode}
