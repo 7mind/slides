@@ -150,7 +150,8 @@ Garbage Collection
 \frametitle{The motivation behind DI pattern and DI frameworks}
 \begin{enumerate}
 \item Systems we work with may be represented as graphs. Nodes are components (usually instances), edges are references,
-\item Graph transformation complexity grows non-linearly with node count (need to add one constructor parameter, have to modify $k$ classes),
+\item Graph transformation complexity grows with node count 
+     (need to add one constructor parameter, have to modify $k$ classes), many operations have non-linear complexity,
 \item Graph composition has combinatoric complexity (need to run tests choosing between mock/production repositories and external APIs, have to write four configurations).
 \end{enumerate}
 
