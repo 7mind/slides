@@ -1,0 +1,433 @@
+\documentclass[usenames,dvipsnames]{beamer}
+    \mode<presentation> {
+    \usetheme{Montpellier}
+    \usecolortheme{beaver}
+    %\setbeamertemplate{footline} % To remove the footer line in all slides uncomment this line
+    \setbeamertemplate{footline}[page number] % To replace the footer line in all slides with a simple slide count uncomment this line
+    \setbeamertemplate{navigation symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
+    }
+
+    \usepackage{graphicx} % Allows including images
+    \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+    \usepackage[outputdir=target]{minted}
+    \usepackage{xcolor}
+    \usepackage[utf8]{inputenc}
+    \usepackage{pifont}
+    \usepackage{xspace}
+    \usepackage{newunicodechar}
+    \newunicodechar{✪}{\ding{74}}
+
+    \definecolor{mintedbackground}{rgb}{0.95,0.95,0.95}
+    \newcommand{\code}[1]{\colorbox{lightgray}{\texttt{#1}}}
+    \newcommand{\distage}{\texttt{distage}\xspace}
+
+\newminted{scala}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
+
+\newminted{text}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
+
+\newminted{json}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
+
+    \setminted{fontsize=\footnotesize,baselinestretch=1}
+
+    \usepackage{tikz}
+    \usetikzlibrary{positioning}
+    \graphicspath{{target/media/}}
+
+    \title[\distage]{\distage: Modern Staged Dependency Injection for Scala}
+
+    \institute[Septimal Mind Ltd]
+    {
+    Septimal Mind Ltd\\
+    \medskip
+    \textit{team@7mind.io}
+    }
+    \date{\today}
+
+\begin{document}
+
+% \begin{VerbatimOut}{ex-scala-roles.tmp}
+% @RoleId("testservice")
+% class TestService[F[_] : Monad](http: HttpSrv[F])
+%   extends IzService {
+%     override def start(): Unit = http.start()
+%     override def stop(): Unit = http.stop()
+% }
+% class TestPlugin extends PluginDef {
+%   many[IzService].add[TestService[IO]]
+% }
+% object TestLauncher {
+%   // run with
+%   // java test.jar test-service other-service
+%   def main(args: Array[String]): Unit = IzRoleApp(args).main()
+% }
+% \end{VerbatimOut}
+
+\begin{frame}
+%\titlepage
+\begin{figure}
+\Huge
+\color{RubineRed} dist✪ge
+\noindent
+\rule{\linewidth}{1mm}
+\Large Modern Staged Dependency Injection for Scala
+\rule{\linewidth}{1mm}
+\end{figure}
+
+\begin{figure}
+\color{RubineRed}
+\normalsize Modular Functional Programming \\
+with \\
+Context Minimization \\
+through \\
+Garbage Collection
+\end{figure}
+
+\begin{figure}
+\Large Septimal Mind Ltd \\
+\medskip
+\textit{team@7mind.io}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The problem: Dependency Injection and Functional Programming}
+
+\begin{frame}
+\frametitle{DI is outdated and doesn't compose with FP?}
+  Many Scala folks think that:
+  \begin{enumerate}
+  \item DI is heavy and slow
+  \begin{itemize}
+    \item \textit{``tests initialize longer than they execute''}
+  \end{itemize}
+  \item DI is unsafe
+  \begin{itemize}
+    \item \textit{``my program may compile but fail on startup after a huge delay''}
+  \end{itemize}
+  \item DI doesn't work for modern FP code
+  \begin{itemize}
+    \item \textit{``we cannot inject \code{IO\lbrack\_, \_\rbrack} into \code{Repository\lbrack\_\lbrack\_, \_\rbrack\rbrack}''}
+  \end{itemize}
+  \item DI is full of magic and error-prone
+  \begin{itemize}
+    \item \textit{``I've read 80\% out of 5000-page Spring manual but still don't understand why do I need to put these twelwe annotations here.
+    Also I've tried Guice but it failed with 10-megabytes stack after five minutes and 300 retries of database connection instantiation''}
+  \end{itemize}
+  \end{enumerate}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{TLDR}
+  \begin{scalacode}
+import distage._, scalaz.zio.IO
+
+trait Repository[F[_, _]] {}
+class ProductionRepository[F[_, _]]() extends Repository[F]
+class DummyRepository[F[_, _]]() extends Repository[F]
+class App[F[_, _]](repository: Repository[F]) { def run = ??? }
+
+class MyAppProd[F[_, _]] extends PluginDef {
+  make[Repository[F]].from[ProductionRepository[F]]
+  make[App[F]]
+}
+class Main[F[_, _]] { def main(args: Array[String]): Unit = {
+  Injector()
+    .produce(MyAppProd[F], roots = Set(DIKey.get[App[F]]))
+    .run { app: App[F] => app.run() }
+}}
+object Main[IO]
+  \end{scalacode}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{\distage{} features}
+\begin{frame}
+\frametitle{\distage: overview}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Garbage Collection for better and faster tests}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Garbage Collection for deployment: flexible monoliths}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Config support}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Run-time and compile-time injection}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{\dots and even more}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{\distage{} internals}
+\begin{frame}
+\frametitle{How it works: Plans}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Plans: introspection}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{Plans: extensibility}
+  \begin{enumerate}
+  \item ??
+  \item ???
+  \end{enumerate}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{7mind stack}
+\subsection{7mind Stack}
+\begin{frame}
+  \begin{figure}
+  \Huge
+  \color{RubineRed} dist✪ge
+  \noindent
+  \rule{\linewidth}{1mm}
+  \Large 7mind Stack
+  \rule{\linewidth}{1mm}
+  \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{\distage: status and things to do}
+  \distage{} is:
+  \begin{enumerate}
+    \item ready to use,
+    \item in real production,
+    \item all Run-time features are available,
+    \item all Compile-time features except of full Producer are available.
+  \end{enumerate}
+  \vspace{0.3cm}
+  Our plans:
+  \begin{enumerate}
+    \item \code{ProducerF\lbrack\_\rbrack} --- Producer within a monad,
+    \item New Roles API,
+    \item Scala.js support,
+    \item Compile-time Producer,
+    \item Isolated Classloaders for Roles (in future),
+    \item Check our GitHub: https://github.com/pshirshov/izumi-r2.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \frametitle{\distage is just a part of our stack}
+  We have a vision backed by our tools:
+  \begin{enumerate}
+    \item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
+    \item LogStage: zero-cost logging framework,
+    \item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
+    \item \textit{Continous Delivery} guidelines for Role-based process,
+    \item \textit{Percept-Plan-Execute} Generative Programming approach, abstract machine and computational model.
+    Addresses Project Planning (see Operations Research). Examples: orchestration, build systems.
+        %  Roles: distributed development without distributed computing
+  \end{enumerate}
+
+  Altogether these things already allowed us to significantly reduce development costs and
+  delivery time for our client.\newline
+
+  More slides to follow.
+\end{frame}
+
+\begin{frame}
+  \begin{center}
+  \Huge
+  You use \texttt{Guice}?
+
+  Switch to \distage!
+
+  \begin{figure}
+      \includegraphics[width=0.35\textwidth]{media/haruhi.jpg}
+  \end{figure}
+
+  \end{center}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Teaser: LogStage}
+  A log call \dots
+  \begin{scalacode}
+log.info(s"$user logged in with $sessionId!")
+  \end{scalacode}
+
+  \dots may be rendered as a text like \texttt{17:05:18 UserService.login user=John Doe logged in with sessionId=DEADBEEF!}
+
+  \dots or a structured JSON:
+  \begin{jsoncode}
+{
+  "user": "John Doe",
+  "sessionId": "DEADBEEF",
+  "_template": "$user logged in with $sessionId!",
+  "_location": "UserService.scala:265",
+  "_context": "UserService.login",
+}
+  \end{jsoncode}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Teaser: Idealingua}
+  \begin{textcode}
+id UserId { uid: str }
+data User {  name: str /* ... more fields */ }
+data PublicUser {
+ + InternalUser
+ - SecurityAttributes
+}
+adt Failure = NotFound | UnknownFailure
+service Service {
+  def getUser(id: UserId): User !! Failure
+}
+  \end{textcode}
+
+\begin{enumerate}
+\item Convenient Data and Interface Definition Language,
+\item Extensible, transport-agnostic, abstracted from wire format,
+% \item Server-to-Server, Server-to-Client \& Client-to-Server communication,
+% \item Bifunctor Error Model, Strongly typed API calls - no longer remove type safety with microservices!
+% \item <IMG>twitter microservices are a great way to remove typesafety</IMG>
+\item JSON + HTTP / WebSocket at the moment,
+\item C\#, go, Scala, TypeScript at the moment,
+\item Better than gRPC / REST / Swagger/ etc.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Thank you for your attention}
+
+    \begin{center}
+      distage website: https://izumi.7mind.io/
+
+      We're looking for clients, contributors, adopters and colleagues ;)
+    \end{center}
+
+    About the author:
+    \begin{enumerate}
+        \item coding for 18 years, 10 years of hands-on commercial engineering experience,
+        \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
+        \item implemented ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
+        \item Owns an Irish R\&D company, https://7mind.io,
+        \item Contact: team@7mind.io,
+        \item Github: https://github.com/pshirshov
+        \item Download slides: https://github.com/7mind/slides/
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Thank you for your attention}
+
+    \begin{center}
+      distage website: https://izumi.7mind.io/
+
+      We're looking for clients, contributors, adopters and colleagues ;)
+    \end{center}
+
+    About the author:
+    \begin{enumerate}
+        \item coding for 18 years, 10 years of hands-on commercial engineering experience,
+        \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
+        \item implemented ``\textit{Interstellar Spaceship}'' --- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
+        \item Owns an Irish R\&D company, https://7mind.io,
+        \item Contact: team@7mind.io,
+        \item Github: https://github.com/pshirshov
+        \item Download slides: https://github.com/7mind/slides/
+    \end{enumerate}
+\end{frame}
+
+\end{document}
