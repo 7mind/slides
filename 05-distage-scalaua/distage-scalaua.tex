@@ -199,82 +199,348 @@ object Main[IO]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{\distage{} features}
 \begin{frame}
-\frametitle{\distage: overview}
+  \frametitle{\distage: overview}
   \begin{enumerate}
-  \item ??
-  \item ???
+    \item Staged Model: \textit{plans the job first then do},
+    \item Garbage Collection: \textit{instantiates reachable instances only},
+    \item Higher-Kinded Types support: \textit{injects typeclass instances},
+    \item Path-Dependent Types support,
+    \item Plan introspection: \textit{dumps, graphviz, dependency trees},
+    \item Plan rewriting,
+    \item Roles: \textit{multiple services in one process},
+    \item Dynamic Plugins\footnotemark[2] and Testkit,
+    \item Circular Dependencies\footnotemark[1],
+    \item Trait Augmentation and Assisted Injection\footnotemark[1],
+    \item Automatic Sets: \textit{prepopulated sets all the instances of a class}
   \end{enumerate}
+  \footnotetext[1]{Both run-time and compile-time support}
+  \footnotetext[2]{Run-time with compile-time verification}
 \end{frame}
 
 \begin{frame}
 \frametitle{Garbage Collection for better and faster tests}
   \begin{enumerate}
-  \item ??
-  \item ???
+    \item Define all your test and production dependencies as a flat list,
+    \item Put discrimination tags on test-specific definitions,
+    \item Only the instances required for your tests will be instantiated,
+    \item It takes just milliseconds, not like in Spring,
+    \item $\Rightarrow$ Significant savings on test startup time.
+    \item You don't need to setup your context, it's done automatically by Plugin Loader and Garbage Collector,
+    \item $\Rightarrow$ Substantial savings on test context configuration.
   \end{enumerate}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
+\frametitle{Example: Garbage Collection and tests}
+  \begin{scalacode}
+import distage._, scalaz.zio.IO
+
+trait Repository[F[_, _]] {}
+class ProductionRepository[F[_, _]]() extends Repository[F]
+class DummyRepository[F[_, _]]() extends Repository[F]
+
+class MyAppDef[F[_, _]] extends PluginDef {
+  make[Repository[F]].from[ProductionRepository[F]]
+  make[Repository[F]].tagged("test").from[DummyRepository[F]]
+}
+
+object MyApp extends MyApp[IO]
+
+class RepoTest extends DistagePluginSpec { "repository" must {
+"do something" in di {
+  (repository: Repository[IO]) => // repository is a GC root
+    // ProductionRepository will not be instantiated!
+} } }
+  \end{scalacode}
+\end{frame}
+
+\begin{frame}[fragile]
 \frametitle{Garbage Collection for deployment: flexible monoliths}
+  We may fuse Microservices with Monoliths keeping \textit{all} their benefits:
   \begin{enumerate}
-  \item ??
-  \item ???
+  \item Develop software components (\textit{Roles}\footnotemark[1]) as usual\footnotemark[2],
+  \item Each Role is a Garbage Collection Root,
+  \item Build one Docker image with multiple Roles in it,
+  \item Define Roles you want to start as commandline parameters,
+  \item $\Rightarrow$ higher computational density, savings on infrastructure,
+  \item $\Rightarrow$ \textit{substantial} development simplification: full environment may be started on a low-end machine with one command,
   \end{enumerate}
+
+  \begin{textcode}
+server1# docker run company/product +analytics
+server2# docker run company/product +accounting +users
+developer1# docker run company/product +*
+developer2# docker run company/product --dummy-repositories +*
+  \end{textcode}
+
+  \footnotetext[1]{Slides with more details: https://goo.gl/iaMt43}
+  \footnotetext[2]{You are not prohibited from using multirepo layout}
 \end{frame}
 
-\begin{frame}
+\begin{frame}[fragile]
 \frametitle{Config support}
+  \distage has \texttt{HOCON} configuration extension.
+
+  \begin{scalacode}
+case class HostPort(host: String, port: Int)
+
+class HttpServer(@ConfPath("http.listen") listenOn: HostPort) {
+  // ...
+}
+  \end{scalacode}
+
+  The extension:
   \begin{enumerate}
-  \item ??
-  \item ???
+  \item Enumerates all the missing references in a Plan,
+  \item Searches them for a specific \mintinline{scala}{@ConfPath} annotation,
+  \item Tries to find corresponding sections in config source,
+  \item Extends plan with config values,
+  \item $\Rightarrow$ Config values are being resolved before instantiation begins,
+  \item $\Rightarrow$ problems are being shown quickly and all at once.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Dynamic Plugins}
+  Just drop your modules into your classpath:
+  \begin{scalacode}
+class AccountingModule extends PluginDef {
+  make[AccountingService].from[AccountingServiceImpl]
+  // ...
+}
+  \end{scalacode}
+  Then you may pick up all the modules and build your context:
+  \begin{scalacode}
+val plugins = new PluginLoaderDefaultImpl(
+  PluginConfig(Seq("com.company.plugins"))
+).load()
+// ... pass to an Injector
+  \end{scalacode}
+  \begin{enumerate}
+  \item Useful while you are prototyping your app,
+  \item In maintenance phase you may switch to static configuration.
   \end{enumerate}
 \end{frame}
 
 \begin{frame}
-\frametitle{Run-time and compile-time injection}
+  \frametitle{Circular dependencies}
   \begin{enumerate}
-  \item ??
-  \item ???
+    \item Supported, \texttt{Proxy} concept used,
+    \item Optional: you may turn Circular Dependency support off.
+    \item By-name parameters (\mintinline{scala}{class C(param: => P)}) supported, without run-time code-generation,
+    \item Compile-time and run-time code-generation for other cases,
+  \end{enumerate}
+
+  Limitations:
+  \begin{enumerate}
+    \item You cannot use an injected parameter immediately in a constructor,
+    \item you cannot have circular non-by-name dependencies with final classes,
   \end{enumerate}
 \end{frame}
 
-\begin{frame}
-\frametitle{\dots and even more}
+\begin{frame}[fragile]
+\frametitle{Trait Completion}
+\begin{scalacode}
+trait UsersService {
+  protected def repository: UsersRepo
+  def add(user: User): Unit = {
+    repository.put(user.id, user)
+    ???
+  }
+}
+\end{scalacode}
+We may bind this trait directly, without an implementation class:
+
+\begin{scalacode}
+make[UsersService]
+\end{scalacode}
+
+\begin{enumerate}
+\item Corresponding class will be generated\footnotemark[1] by \distage,
+\item Null-arg abstract methods will be wired with context values,
+\end{enumerate}
+\footnotetext[1]{both runtime and compile-time cogen supported}
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Assisted Injection (Factory Methods)}
+  \begin{scalacode}
+class UserActor(sessionId: UUID, sessionRepo: SessionRepo)
+
+trait ActorFactory {
+  def createActor(sessionId: UUID): UserActor
+}
+  \end{scalacode}
+
   \begin{enumerate}
-  \item ??
-  \item ???
+    \item \mintinline{scala}{createActor} is a factory method,
+    \item \mintinline{scala}{createActor} will be generated by \distage,
+    \item non-null-arg abstract methods are treated as factory methods,
+    \item Non-invasive \textit{assisted injection}: \mintinline{scala}{sessionId: UUID} will be taken from method parameter, \mintinline{scala}{sessionRepo: SessionRepo} will be wired from context,
+    \item Useful for \texttt{Akka}, lot more convenient than Guice,
+    \item Works in both runtime and compile-time.
   \end{enumerate}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Extension: Automatic Sets}
+
+  \begin{enumerate}
+    \item All instances of type \mintinline{scala}{T} (like \mintinline{scala}{AutoCloseable}) as a \mintinline{scala}{Set[T]},
+    \item Strong and Weak References:
+      \begin{itemize}
+        \item GC collects weak referenced members with no more references
+      \end{itemize}
+  \end{enumerate}
+
+  Example: free-of-charge basic resource support:
+
+  \begin{scalacode}
+trait Resource {
+  def start(): Unit
+  def stop(): Unit
+}
+trait App { def main(): Unit }
+locator.run { (resources: Set[Resource], app: App) =>
+  try {
+    resources.foreach(_.start())
+    app.main()
+  } finally { resources.foreach(_.close()) }
+}
+  \end{scalacode}
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{\distage{} internals}
 \begin{frame}
-\frametitle{How it works: Plans}
+  \frametitle{How it works: Plans}
   \begin{enumerate}
-  \item ??
-  \item ???
+  \item
   \end{enumerate}
 \end{frame}
 
-\begin{frame}
-\frametitle{Plans: introspection}
-  \begin{enumerate}
-  \item ??
-  \item ???
-  \end{enumerate}
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: example context}
+\begin{scalacode}
+class Cluster
+trait UsersService
+trait AccountingService
+trait UserRepo
+trait AccountsRepo
+
+class UserRepoImpl(cluster: Cluster) extends UserRepo
+class AccountsRepoImpl(cluster: Cluster) extends AccountsRepo
+class UserServiceImpl(userRepo: UserRepo) extends UsersService
+class AccountingServiceImpl(accountsRepo: AccountsRepo)
+    extends AccountingService
+
+class UsersApiImpl(service: UsersService
+    , accountsApi: AccountsApiImpl)
+class AccountsApiImpl(service: AccountingService
+    , usersApi: UsersApiImpl) // circular dependency
+class App(uapi: UsersApiImpl, aapi: AccountsApiImpl)
+\end{scalacode}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: example bindings\footnotemark[1]}
+\begin{scalacode}
+val definition = new ModuleDef {
+    make[Cluster]
+    make[UserRepo].from[UserRepoImpl]
+    make[AccountsRepo].from[AccountsRepoImpl]
+    make[UsersService].from[UserServiceImpl]
+    make[AccountingService].from[AccountingServiceImpl]
+    make[UsersApiImpl]
+    make[AccountsApiImpl]
+    make[App]
+}
+val injector = Injector()
+val plan = injector.plan(definition)
+\end{scalacode}
+\footnotetext[1]{Full code example: https://goo.gl/7ZwHfX}
 \end{frame}
 
 \begin{frame}
-\frametitle{Plans: extensibility}
-  \begin{enumerate}
-  \item ??
-  \item ???
-  \end{enumerate}
+  \frametitle{Plan Introspection: graphviz dumps\footnotemark[1]}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{media/plan-example-dot}
+  \end{figure}
+  \footnotetext[1]{This picture has been generated automatically by distage extension}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: plan dumps}
+\begin{scalacode}
+println(plan.render) // look for the circular dependency!
+\end{scalacode}
+
+\begin{figure}
+    \includegraphics[width=0.75\textwidth]{media/plan-example.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Plan Introspection: dependency trees}
+You may explore dependencies of a component:
+
+\begin{scalacode}
+val dependencies = plan.topology.dependencies
+println(dependencies.tree(DIKey.get[AccountsApiImpl]))
+\end{scalacode}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{media/dependency-tree.png}
+\end{figure}
+
+Circular dependencies are specifically marked.
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{center}
+\frametitle{Compile-Time and Runtime DI}
+A Plan:
+\begin{textcode}
+myRepository := create[MyRepository]()
+myservice    := create[MyService](myRepository)
+\end{textcode}
+
+May be interpreted as:
+
+\begin{columns}
+
+\begin{column}[T]{0.5\textwidth}
+   \setlength{\topsep}{0pt}
+   \setlength{\partopsep}{0pt}
+Code tree (compile-time):
+\begin{scalacode}
+val myRepository =
+    new MyRepository()
+val myservice =
+    new MyService(myRepository)
+\end{scalacode}
+\end{column}
+
+\begin{column}[T]{0.5\textwidth}
+Set of instances (runtime):
+\begin{scalacode}
+plan.foldLeft(Context.empty) {
+case (ctx, op) =>
+    ctx.withInstance(
+        op.key
+        , interpret(action)
+    )
+}
+\end{scalacode}
+\end{column}
+
+\end{columns}
+\end{center}
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{7mind stack}
-\subsection{7mind Stack}
 \begin{frame}
   \begin{figure}
   \Huge
