@@ -419,11 +419,11 @@ locator.run { (resources: Set[Resource], app: App) =>
   \begin{enumerate}
     \item translates bindings into simple Turing-incomplete DSL (like \code{make}, \code{reference}, etc.),
     \item represents the DSL statements as Directed Acyclic Graph using dependecy information and breaking circular dependencies if any,
-    \item resolves conflicts --- when one DAG node has several associated operations,
+    \item resolves conflicts (one DAG node with several associated operations),
     \item performs garbage collection,
     \item applies other transformations (like config reference resolution),
-    \item applies topological sorting to turn the DAG back into sequential form --- a Plan.
-    \item $Rightarrow$ the Plan may be introspected, printed, executed during compile-time by code generator or executed in run-time.
+    \item turns the DAG back into sequential form --- a Plan --- with topological sorting.
+    \item $\Rightarrow$ the Plan may be introspected, printed, executed in compile-time by a code generator or executed in run-time.
   \end{enumerate}
 \end{frame}
 
