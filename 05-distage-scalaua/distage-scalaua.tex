@@ -415,8 +415,16 @@ locator.run { (resources: Set[Resource], app: App) =>
 \section{\distage{} internals}
 \begin{frame}
   \frametitle{How it works: Plans}
+  \distage
   \begin{enumerate}
-  \item
+    \item represents each binding as an operation of simple Turing-incomplete DSL,
+    \item then uses dependency information to build turn the operations list into Directed Acyclic Graph,
+      \begin{itemize}
+        \item and breaks circular dependencies using \code{make\_proxy} operation,
+      \end{itemize}
+    \item then performs garbage collection,
+    \item then applies other transformations,
+    \item then uses topological sort to represent the DAG as a sequence of operations --- a Plan,
   \end{enumerate}
 \end{frame}
 
