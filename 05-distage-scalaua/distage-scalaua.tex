@@ -1,10 +1,12 @@
 \documentclass[usenames,dvipsnames]{beamer}
     \mode<presentation> {
     \usetheme{Montpellier}
+    \useoutertheme{tree}
     \usecolortheme{beaver}
     %\setbeamertemplate{footline} % To remove the footer line in all slides uncomment this line
     \setbeamertemplate{footline}[page number] % To replace the footer line in all slides with a simple slide count uncomment this line
     \setbeamertemplate{navigation symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
+    \setbeamersize{text margin left=8mm,text margin right=5mm}
     }
 
     \usepackage{graphicx} % Allows including images
@@ -97,6 +99,45 @@
     }
     \date{\today}
 
+\makeatletter
+\setbeamertemplate{headline}
+{%
+    \begin{beamercolorbox}[wd=\paperwidth,colsep=1.5pt]{upper separation line head}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=\paperwidth,ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{title in head/foot}
+      \usebeamerfont{title in head/foot}\insertshorttitle
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=\paperwidth,ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{section in head/foot}
+      \usebeamerfont{section in head/foot}%
+      \ifbeamer@tree@showhooks
+        \setbox\beamer@tempbox=\hbox{\insertsectionhead}%
+        \ifdim\wd\beamer@tempbox>1pt%
+          \hskip2pt\raise1.9pt\hbox{\vrule width0.4pt height1.875ex\vrule width 5pt height0.4pt}%
+          \hskip1pt%
+        \fi%
+      \else%
+        \hskip6pt%
+      \fi%
+      \insertsectionhead
+      \usebeamerfont{subsection in head/foot}%
+      \ifbeamer@tree@showhooks
+        \setbox\beamer@tempbox=\hbox{\insertsubsectionhead}%
+        \ifdim\wd\beamer@tempbox>1pt%
+          \ \raise1.9pt\hbox{\vrule width 5pt height0.4pt}%
+          \hskip1pt%
+        \fi%
+      \else%
+        \hskip12pt%
+      \fi%
+      \insertsubsectionhead\hfill\insertframenumber/\inserttotalframenumber\hspace{0.5em}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=\paperwidth,colsep=1.5pt]{lower separation line head}
+    \end{beamercolorbox}
+}
+\makeatother
+
 \begin{document}
 
 % \begin{VerbatimOut}{ex-scala-roles.tmp}
@@ -174,10 +215,10 @@ Garbage Collection
 \begin{frame}
 \frametitle{DI is outdated and doesn't compose with FP?}
   \center{
-  \textit{"Given its native support for type classes and higher-kinded types — both features indispensable to functional programming — DI Stage is one of the leading dependency injection libraries out there. Bonus points for being built by a wicked-smart team that contributes to ZIO!"}
+  \textit{``Given its native support for type classes and higher-kinded types -- both features indispensable to functional programming -- DI Stage is one of the leading dependency injection libraries out there. Bonus points for being built by a wicked-smart team that contributes to ZIO!''}
   }
   \newline
-  \leftline{\textit{ – John A. De Goes}}
+  \leftline{\textit{ --– John A. De Goes}}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -194,10 +235,11 @@ class MyAppProd[F[_, _]: TagKK] extends ModuleDef {
   make[Repository[F]].from[ProductionRepository[F]]
   make[App[F]]
 }
-class Main[F[_, _]] { def main(args: Array[String]) = 
+class Main[F[_, _]: TagKK: BIO] extends App {
   Injector()
-    .produceF[F](new MyAppProd[F],roots=Set(DIKey.get[App[F]]))
-    .use(_.get[App[F]].run)
+    .produceF[F[Throwable, ?]](
+      new MyAppProd[F], roots=Set(DIKey.get[App[F]])
+    ).use(_.get[App[F]].run)
 }
 object Main extends Main[IO]
   \end{scalacode}
@@ -208,18 +250,18 @@ object Main extends Main[IO]
 \begin{frame}
   \frametitle{\distage: overview}
   \begin{enumerate}
-    \item Staging: \textit{plan work ahead of time},
+    \item Staging: \textit{plan all the work before you do anything},
     \item Garbage Collection: \textit{instantiate reachable instances only},
-    \item Higher-Kinded Types: \textit{use typeclasses \& parametricity},
-    % \item Path-Dependent Types support,
-    \item Lifecycle: \textit{inject any cats.effect.Resource[F, A]},
+    \item Higher-Kinded Types: \textit{inject typeclass instances, use parametricity},
+    \item Path-Dependent Types support,
+    \item Lifecycle and Resources: \textit{inject any cats.effect.Resource[F, A]},
     \item Plan introspection: \textit{graphviz, text dump, dependency trees},
     \item Plan rewriting,
     \item Roles: \textit{multiple services in one process},
     % \item Sets: \textit{collect listeners, hooks, routes...}
     \item Dynamic Plugins\footnotemark[1] and Testkit,
     \item Circular Dependencies support,
-    \item Auto-Traits and Auto-Factories\footnotemark[2],
+    \item Assisted Injection and Trait Augmentation\footnotemark[2],
     \item Automatic Sets: \textit{prepopulate sets with all instances of a class}
   \end{enumerate}
   \footnotetext[1]{Runtime with compile-time verification}
@@ -248,7 +290,7 @@ class MyAppPlugin extends PluginDef {
   make[Repository[IO]].from[ProductionRepository[IO]]
   make[Repository[IO]].tagged("test").from[DummyRepository[IO]]
 }
-class RepoTest extends DistagePluginSpec { 
+class RepoTest extends DistagePluginSpec {
   "repository" must {
     "work correctly" in diIO {
       (repository: Repository[IO]) => // repository is GC root
@@ -271,7 +313,7 @@ class RepoTest extends DistagePluginSpec {
   \item Build a single Docker image with multiple Roles in it,
   \item Pass Roles you want to start as commandline parameters,
   \item $\Rightarrow$ higher computation density, savings on infrastructure,
-  \item $\Rightarrow$ \textit{substantial} development simplification: full environment can be started on a low-end machine with one command,
+  \item $\Rightarrow$ \textit{substantial} development simplification: full environment can be started on a low-end machine with one command.
   \end{enumerate}
 
   \begin{textcode}
@@ -287,7 +329,7 @@ developer2# docker run company/product --dummy-repositories +*
 \begin{frame}
 \frametitle{Lifecycle}
   \begin{itemize}
-    \item An application must manage a lot of global resources:
+    \item Applications manage a lot of global resources:
       \begin{enumerate}
       \item Connection pools, thread pools
       \item Servers, external endpoints, databases
@@ -301,7 +343,7 @@ developer2# docker run company/product --dummy-repositories +*
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Lifecycle: .fromResource}
+\frametitle{Lifecycle: \code{.fromResource}}
   \begin{enumerate}
     \item Inject any cats-effect Resource
     \item Global resources deallocate when the app or test ends
@@ -332,7 +374,7 @@ object App extends IOApp {
 
   \begin{scalacode}
     import distage._, import scalaz.zio._
-    
+
     case class UploadConfig(maxParallelUploads: Long)
 
     class UploaderModule extends ModuleDef {
@@ -342,7 +384,7 @@ object App extends IOApp {
       make[Uploader]
     }
     class Uploader(limit: Semaphore @Id("upload-limit")) {
-      def upload(content: Content): IO[Throwable, Unit] = 
+      def upload(content: Content): IO[Throwable, Unit] =
         limit.withPermit(...)
     }
   \end{scalacode}
@@ -368,7 +410,7 @@ class HttpServer(@ConfPath("http.listen") listenOn: HostPort) {
   \item Extends plan with config values,
   \item $\Rightarrow$ Config values are parsed before instantiation begins,
   \item $\Rightarrow$ Problems are shown quickly and all at once,
-  \item $\Rightarrow$ Compile-time plugin checker validates config.
+  \item $\Rightarrow$ Compile-time checker plugin validates config.
   \end{enumerate}
 \end{frame}
 
@@ -398,23 +440,23 @@ val plugins = new PluginLoaderDefaultImpl(
   \frametitle{Circular dependencies}
   \begin{enumerate}
     \item Supported via \texttt{Proxies},
-    \item Cyclic by-name parameters (\mintinline{scala}{class C(param: => P)}) will work without proxies,
+    \item Cyclic by-name parameters (\mintinline{scala}{class C(param: => P)}) will work without run-time code-generation,
     \item Circular dependency support can be disabled.
   \end{enumerate}
 
   Limitations:
   \begin{enumerate}
-    \item You cannot use an injected parameter immediately during initii,
-    \item You cannot use non-by-name circular dependencies with final classes,
+    \item You cannot use an injected parameter immediately during initialization,
+    \item You cannot have non-by-name circular dependencies with final classes,
   \end{enumerate}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Trait Completion}
+\frametitle{Trait Augmentation}
 \begin{scalacode}
 trait UsersService {
   protected def repository: UsersRepo
-  
+
   def add(user: User): Unit = {
     repository.put(user.id, user)
   }
@@ -542,7 +584,7 @@ val plan = injector.plan(definition)
 \end{frame}
 
 \begin{frame}
-  \frametitle{Plan Introspection: graphviz dump\footnotemark[1]}
+  \frametitle{Plan Introspection: graphviz dumps\footnotemark[1]}
   \begin{figure}
     \includegraphics[width=\textwidth]{media/plan-example-dot}
   \end{figure}
@@ -633,12 +675,12 @@ case (ctx, op) =>
 
 \begin{frame}[fragile]
   \frametitle{\distage: status and things to do}
-  \distage{} 0.7 is:
+  \distage{} 0.7:
   \begin{enumerate}
-    \item ready to use,
-    \item in production for over 1 year,
-    \item all runtime features are available,
-    \item all compile-time features except for full compile-time mode are available.
+    \item is ready to use,
+    \item is in production for over 1 year,
+    \item has all runtime features available,
+    \item has all compile-time features available except for full compile-time mode.
   \end{enumerate}
   \vspace{0.3cm}
   What's next:
@@ -656,7 +698,7 @@ case (ctx, op) =>
   We have a vision backed by our tools:
   \begin{enumerate}
     \item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
-    \item LogStage: structured logging framework,
+    \item LogStage: zero-cost structured logging framework,
     \item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
     \item \textit{Continous Delivery} guidelines for Role-based process,
     \item \textit{Percept-Plan-Execute} Generative Programming approach, abstract machine and computational model.
@@ -710,33 +752,6 @@ log.info(s"$user logged in with $sessionId!")
   \end{jsoncode}
 \end{frame}
 
-\begin{frame}[fragile]
-  \frametitle{Teaser: Idealingua}
-  \begin{textcode}
-id UserId { uid: str }
-data User {  name: str /* ... more fields */ }
-data PublicUser {
- + InternalUser
- - SecurityAttributes
-}
-adt Failure = NotFound | UnknownFailure
-service Service {
-  def getUser(id: UserId): User !! Failure
-}
-  \end{textcode}
-
-\begin{enumerate}
-\item Convenient Data and Interface Definition Language,
-\item Extensible, transport-agnostic, abstracted from wire format,
-% \item Server-to-Server, Server-to-Client \& Client-to-Server communication,
-% \item Bifunctor Error Model, Strongly typed API calls - no longer remove type safety with microservices!
-% \item <IMG>twitter microservices are a great way to remove typesafety</IMG>
-\item JSON + HTTP / WebSocket at the moment,
-\item C\#, go, Scala, TypeScript at the moment,
-\item Better than gRPC / REST / Swagger/ etc.
-\end{enumerate}
-\end{frame}
-
 \begin{frame}
     \frametitle{Thank you for your attention}
 
@@ -750,7 +765,7 @@ service Service {
     \begin{enumerate}
         \item coding for 18 years, 10 years of hands-on commercial engineering experience,
         \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
-        \item At Yandex, worked on ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
+        \item Created ``\textit{Yandex Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
         \item Owns an Irish R\&D company, https://7mind.io,
         \item Contact: team@7mind.io,
         \item Github: https://github.com/pshirshov
