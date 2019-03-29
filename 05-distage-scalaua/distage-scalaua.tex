@@ -145,7 +145,7 @@ Garbage Collection
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{The problem: Dependency Injection and Functional Programming}
+\section{The argument: Dependency Injection vs. Functional Programming}
 
 \begin{frame}
 \frametitle{DI is outdated and doesn't compose with FP?}
@@ -157,9 +157,9 @@ Garbage Collection
   \end{itemize}
   \item DI is unsafe
   \begin{itemize}
-    \item \textit{``my program compiled but failed at runtime after a huge delay''}
+    \item \textit{``my program compiles but crashes at runtime after a huge delay''}
   \end{itemize}
-  \item DI doesn't work with FP
+  \item DI doesn't work for modern FP code
   \begin{itemize}
     \item \textit{``we cannot inject \code{IO\lbrack\_, \_\rbrack} into \code{Repository\lbrack\_\lbrack\_, \_\rbrack\rbrack}''}
   \end{itemize}
@@ -183,16 +183,16 @@ class ProductionRepository[F[_, _]] extends Repository[F]
 class DummyRepository[F[_, _]] extends Repository[F]
 class App[F[_, _]](repository: Repository[F]) { def run = ??? }
 
-class MyAppProd[F[_, _]] extends ModuleDef {
+class MyAppProd[F[_, _]: TagKK] extends ModuleDef {
   make[Repository[F]].from[ProductionRepository[F]]
   make[App[F]]
 }
-class Main[F[_, _]] { def main(args: Array[String]) = {
+class Main[F[_, _]] { def main(args: Array[String]) = 
   Injector()
-    .produceF[F](new MyAppProd[F], roots = Set(DIKey.get[App[F]]))
-    .use(_.get[App[F]])
-}}
-object Main[IO]
+    .produceF[F](new MyAppProd[F],roots=Set(DIKey.get[App[F]]))
+    .use(_.get[App[F]].run)
+}
+object Main extends Main[IO]
   \end{scalacode}
 \end{frame}
 
@@ -208,14 +208,15 @@ object Main[IO]
     \item Lifecycle: \textit{inject any cats.effect.Resource[F, A]},
     \item Plan introspection: \textit{graphviz, text dump, dependency trees},
     \item Plan rewriting,
-    \item Sets: \textit{collect listeners, hooks, routes...}
     \item Roles: \textit{multiple services in one process},
-    \item Dynamic Plugins\footnotemark[2] and Testkit,
+    % \item Sets: \textit{collect listeners, hooks, routes...}
+    \item Dynamic Plugins\footnotemark[1] and Testkit,
     \item Circular Dependencies support,
-    \item Auto-Traits and Auto-Factories\footnotemark[1],
+    \item Auto-Traits and Auto-Factories\footnotemark[2],
+    \item Automatic Sets: \textit{prepopulate sets with all instances of a class}
   \end{enumerate}
-  \footnotetext[1]{Run-time or compile-time generation}
-  \footnotetext[2]{Run-time with compile-time verification}
+  \footnotetext[1]{Runtime with compile-time verification}
+  \footnotetext[2]{Runtime or compile-time generation}
 \end{frame}
 
 \begin{frame}
@@ -224,10 +225,10 @@ object Main[IO]
     \item Define all your test and production dependencies as a flat list,
     \item Put discrimination tags on test-specific definitions,
     \item Only the instances required for your tests will be instantiated,
-    \item Creation takes microseconds, not like in Spring,
+    \item Creation takes milliseconds, not like in Spring,
     \item $\Rightarrow$ Significant savings on test startup time.
     \item You don't need to setup your context, it's done automatically by Plugin Loader and Garbage Collector,
-    \item $\Rightarrow$ Significant savings on test setup boilerplate.
+    \item $\Rightarrow$ Substantial savings on test setup boilerplate.
   \end{enumerate}
 \end{frame}
 
@@ -243,7 +244,7 @@ class MyAppPlugin extends PluginDef {
 class RepoTest extends DistagePluginSpec { 
   "repository" must {
     "work correctly" in diIO {
-      (repository: Repository[IO]) => // `repository` is GC root
+      (repository: Repository[IO]) => // repository is GC root
       // Repository is DummyRepository - "test" tag prioritized
       // ProductionRepository will not be instantiated!
       for { kv  <- randomIO[KeyValue]
@@ -258,12 +259,12 @@ class RepoTest extends DistagePluginSpec {
 \frametitle{Garbage Collection for deployment: flexible monoliths}
   We may fuse Microservices with Monoliths keeping \textit{all} their benefits:
   \begin{enumerate}
-  \item Develop software components (\textit{Roles}\footnotemark[1]) separately, even in multirepo,
+  \item Develop services (\textit{Roles}\footnotemark[1]) separately, even in multirepo,
   \item Each Role is a Garbage Collection Root,
   \item Build a single Docker image with multiple Roles in it,
   \item Pass Roles you want to start as commandline parameters,
   \item $\Rightarrow$ higher computation density, savings on infrastructure,
-  \item $\Rightarrow$ \textit{substantial} development simplification: full platform environment can be started on a low-end machine with one command,
+  \item $\Rightarrow$ \textit{substantial} development simplification: full environment can be started on a low-end machine with one command,
   \end{enumerate}
 
   \begin{textcode}
@@ -276,37 +277,67 @@ developer2# docker run company/product --dummy-repositories +*
   \footnotetext[1]{Previous slides on the subject: https://goo.gl/iaMt43}
 \end{frame}
 
-\begin{frame}[fragile]
-\frametitle{Effectful creation}
-dsafgsdfhsdgh TODO FIXME
+\begin{frame}
+\frametitle{Lifecycle}
+  \begin{itemize}
+    \item An application must manage a lot of global resources:
+      \begin{enumerate}
+      \item Connection pools, thread pools
+      \item Servers, external endpoints, databases
+      \item Configurations, metrics, heartbeats
+      \item External log sinks
+      \end{enumerate}
+    \item They have to be started and closed in integration tests,
+    \item We shouldn't set them up manually for every test,
+    \item We want to create reusable components that correctly share a single resource.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Lifecycle}
-  Global resources are a fact of life:
+\frametitle{Lifecycle: .fromResource}
   \begin{enumerate}
-  \item Connection pools, thread pools
-  \item Servers and external endpoints
-  \item Configurations, metrics, heartbeats
-  \item External log sinks
+    \item Inject any cats-effect Resource
+    \item Global resources deallocate when the app or test ends
   \end{enumerate}
-  They must be managed by DI to create reusable components.
-  They must be closed properly after integration tests.
-  We must not set them up anew in every test.
-
-  A myriad of global resources may be started by an application.
-  Many of them will have to be started for integration tests.
 
   \begin{scalacode}
-  import org.http4s.client._
-  import org.http4s.client.blaze._
+object App extends IOApp {
+  val blazeClientModule = new ModuleDef {
+    make[ExecutionContext].from(ExecutionContext.global)
+    addImplicit[Bracket[IO, Throwable]]
 
-  class BlazeClientModule[F[_]: TagK: ConcurrentEffect] 
-    extends ModuleDef {
-    make[Client[F]].fromResource { ec: ExecutionContext => 
-      BlazeClientBuilder[F](ec).resource
+    make[Client[IO]].fromResource { ec: ExecutionContext =>
+      BlazeClientBuilder[IO](ec).resource
+  }}
+
+  def run(args: List[String]): IO[ExitCode] =
+    Injector().produceF[IO](blazeClientModule)
+    .use { // Client allocated
+      _.get[Client[IO]].expect[String]("https://google.com")
+    }.as(ExitCode.Success) // Client closed
+}
+  \end{scalacode}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Effectful creation: .fromEffect}
+  Global mutable state must be created effectfully, but doesn't have to be deallocated. e.g. a global parallelism limiter:
+
+  \begin{scalacode}
+    import distage._, import scalaz.zio._
+    
+    case class UploadConfig(maxParallelUploads: Long)
+
+    class UploaderModule extends ModuleDef {
+      make[Semaphore].named("upload-limit").fromEffect {
+        conf: UploadConfig @ConfPath("myapp.uploads") =>
+          Semaphore.make(conf.maxParallelUploads) }
+      make[Uploader]
     }
-  }
+    class Uploader(limit: Semaphore @Id("upload-limit")) {
+      def upload(content: Content): IO[Throwable, Unit] = 
+        limit.withPermit(...)
+    }
   \end{scalacode}
 \end{frame}
 
@@ -456,7 +487,7 @@ locator.run { (resources: Set[Resource], app: App) =>
     \item performs garbage collection,
     \item applies other transformations (like config reference resolution),
     \item turns the DAG back into sequential form --- a Plan --- with topological sorting.
-    \item $\Rightarrow$ the Plan may be introspected, printed, executed in compile-time by a code generator or executed in run-time.
+    \item $\Rightarrow$ the Plan may be introspected, printed, executed in compile-time by a code generator or executed in runtime.
   \end{enumerate}
 \end{frame}
 
@@ -604,7 +635,6 @@ case (ctx, op) =>
   \vspace{0.3cm}
   What's next:
   \begin{enumerate}
-    \item \code{ProducerF\lbrack\_\rbrack} --- Producer within a monad,
     \item New Roles API,
     \item Scala.js support,
     \item Compile-time Producer,
@@ -712,32 +742,11 @@ service Service {
     \begin{enumerate}
         \item coding for 18 years, 10 years of hands-on commercial engineering experience,
         \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
-        \item at Yandex worked on ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
+        \item At Yandex, worked on ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
         \item Owns an Irish R\&D company, https://7mind.io,
         \item Contact: team@7mind.io,
         \item Github: https://github.com/pshirshov
         \item Slides: https://github.com/7mind/slides/
-    \end{enumerate}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Thank you for your attention}
-
-    \begin{center}
-      distage website: https://izumi.7mind.io/
-
-      We're looking for clients, contributors, adopters and colleagues ;)
-    \end{center}
-
-    About the author:
-    \begin{enumerate}
-        \item coding for 18 years, 10 years of hands-on commercial engineering experience,
-        \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
-        \item implemented ``\textit{Interstellar Spaceship}'' --- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
-        \item Owns an Irish R\&D company, https://7mind.io,
-        \item Contact: team@7mind.io,
-        \item Github: https://github.com/pshirshov
-        \item Download slides: https://github.com/7mind/slides/
     \end{enumerate}
 \end{frame}
 
