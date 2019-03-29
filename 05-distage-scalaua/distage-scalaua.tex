@@ -153,20 +153,20 @@ Garbage Collection
   \begin{enumerate}
   \item DI is heavy and slow
   \begin{itemize}
-    \item \textit{``tests initialize longer than they execute''}
+    \item \textit{``tests start longer than they run''}
   \end{itemize}
   \item DI is unsafe
   \begin{itemize}
-    \item \textit{``my program may compile but fail on startup after a huge delay''}
+    \item \textit{``my program compiled but failed at runtime after a huge delay''}
   \end{itemize}
-  \item DI doesn't work for modern FP code
+  \item DI doesn't work with FP
   \begin{itemize}
     \item \textit{``we cannot inject \code{IO\lbrack\_, \_\rbrack} into \code{Repository\lbrack\_\lbrack\_, \_\rbrack\rbrack}''}
   \end{itemize}
   \item DI is full of magic and error-prone
   \begin{itemize}
-    \item \textit{``I've read 80\% out of 5000-page Spring manual but still don't understand why do I need to put these twelwe annotations here.
-    Also I've tried Guice but it failed with 10-megabytes stack after five minutes and 300 retries of database connection instantiation''}
+    \item \textit{``I've read 80\% of the 5000-page Spring manual but still don't understand why I need to put these 12 annotations here.
+    I've tried Guice but it failed with 10-megabyte stacktrace after five minutes and 300 retries of database connection initialization''}
   \end{itemize}
   \end{enumerate}
 
@@ -178,19 +178,19 @@ Garbage Collection
   \begin{scalacode}
 import distage._, scalaz.zio.IO
 
-trait Repository[F[_, _]] {}
-class ProductionRepository[F[_, _]]() extends Repository[F]
-class DummyRepository[F[_, _]]() extends Repository[F]
+trait Repository[F[_, _]]
+class ProductionRepository[F[_, _]] extends Repository[F]
+class DummyRepository[F[_, _]] extends Repository[F]
 class App[F[_, _]](repository: Repository[F]) { def run = ??? }
 
-class MyAppProd[F[_, _]] extends PluginDef {
+class MyAppProd[F[_, _]] extends ModuleDef {
   make[Repository[F]].from[ProductionRepository[F]]
   make[App[F]]
 }
-class Main[F[_, _]] { def main(args: Array[String]): Unit = {
+class Main[F[_, _]] { def main(args: Array[String]) = {
   Injector()
-    .produce(MyAppProd[F], roots = Set(DIKey.get[App[F]]))
-    .run { app: App[F] => app.run() }
+    .produceF[F](new MyAppProd[F], roots = Set(DIKey.get[App[F]]))
+    .use(_.get[App[F]])
 }}
 object Main[IO]
   \end{scalacode}
@@ -201,19 +201,20 @@ object Main[IO]
 \begin{frame}
   \frametitle{\distage: overview}
   \begin{enumerate}
-    \item Staged Model: \textit{plans the job first then do},
-    \item Garbage Collection: \textit{instantiates reachable instances only},
-    \item Higher-Kinded Types support: \textit{injects typeclass instances},
-    \item Path-Dependent Types support,
-    \item Plan introspection: \textit{dumps, graphviz, dependency trees},
+    \item Staging: \textit{plan work ahead of time},
+    \item Garbage Collection: \textit{instantiate reachable instances only},
+    \item Higher-Kinded Types: \textit{use typeclasses \& parametricity},
+    % \item Path-Dependent Types support,
+    \item Lifecycle: \textit{inject any cats.effect.Resource[F, A]},
+    \item Plan introspection: \textit{graphviz, text dump, dependency trees},
     \item Plan rewriting,
+    \item Sets: \textit{collect listeners, hooks, routes...}
     \item Roles: \textit{multiple services in one process},
     \item Dynamic Plugins\footnotemark[2] and Testkit,
-    \item Circular Dependencies\footnotemark[1],
-    \item Trait Augmentation and Assisted Injection\footnotemark[1],
-    \item Automatic Sets: \textit{prepopulated sets all the instances of a class}
+    \item Circular Dependencies support,
+    \item Auto-Traits and Auto-Factories\footnotemark[1],
   \end{enumerate}
-  \footnotetext[1]{Both run-time and compile-time support}
+  \footnotetext[1]{Run-time or compile-time generation}
   \footnotetext[2]{Run-time with compile-time verification}
 \end{frame}
 
@@ -223,34 +224,33 @@ object Main[IO]
     \item Define all your test and production dependencies as a flat list,
     \item Put discrimination tags on test-specific definitions,
     \item Only the instances required for your tests will be instantiated,
-    \item It takes just milliseconds, not like in Spring,
+    \item Creation takes microseconds, not like in Spring,
     \item $\Rightarrow$ Significant savings on test startup time.
     \item You don't need to setup your context, it's done automatically by Plugin Loader and Garbage Collector,
-    \item $\Rightarrow$ Substantial savings on test context configuration.
+    \item $\Rightarrow$ Significant savings on test setup boilerplate.
   \end{enumerate}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Example: Garbage Collection and tests}
-  \begin{scalacode}
-import distage._, scalaz.zio.IO
+\frametitle{Example: Garbage Collection and tests}\begin{scalacode}
+class ProductionRepository[F[_, _]] extends Repository[F]
+class DummyRepository[F[_, _]] extends Repository[F]
 
-trait Repository[F[_, _]] {}
-class ProductionRepository[F[_, _]]() extends Repository[F]
-class DummyRepository[F[_, _]]() extends Repository[F]
-
-class MyAppDef[F[_, _]] extends PluginDef {
-  make[Repository[F]].from[ProductionRepository[F]]
-  make[Repository[F]].tagged("test").from[DummyRepository[F]]
+class MyAppPlugin extends PluginDef {
+  make[Repository[IO]].from[ProductionRepository[IO]]
+  make[Repository[IO]].tagged("test").from[DummyRepository[IO]]
 }
-
-object MyApp extends MyApp[IO]
-
-class RepoTest extends DistagePluginSpec { "repository" must {
-"do something" in di {
-  (repository: Repository[IO]) => // repository is a GC root
-    // ProductionRepository will not be instantiated!
-} } }
+class RepoTest extends DistagePluginSpec { 
+  "repository" must {
+    "work correctly" in diIO {
+      (repository: Repository[IO]) => // `repository` is GC root
+      // Repository is DummyRepository - "test" tag prioritized
+      // ProductionRepository will not be instantiated!
+      for { kv  <- randomIO[KeyValue]
+            _   <- repository.put(kv)
+            kv2 <- repository.get(kv.key)
+      } yield assert(kv == kv2)
+}}}
   \end{scalacode}
 \end{frame}
 
@@ -258,12 +258,12 @@ class RepoTest extends DistagePluginSpec { "repository" must {
 \frametitle{Garbage Collection for deployment: flexible monoliths}
   We may fuse Microservices with Monoliths keeping \textit{all} their benefits:
   \begin{enumerate}
-  \item Develop software components (\textit{Roles}\footnotemark[1]) as usual\footnotemark[2],
+  \item Develop software components (\textit{Roles}\footnotemark[1]) separately, even in multirepo,
   \item Each Role is a Garbage Collection Root,
-  \item Build one Docker image with multiple Roles in it,
-  \item Define Roles you want to start as commandline parameters,
-  \item $\Rightarrow$ higher computational density, savings on infrastructure,
-  \item $\Rightarrow$ \textit{substantial} development simplification: full environment may be started on a low-end machine with one command,
+  \item Build a single Docker image with multiple Roles in it,
+  \item Pass Roles you want to start as commandline parameters,
+  \item $\Rightarrow$ higher computation density, savings on infrastructure,
+  \item $\Rightarrow$ \textit{substantial} development simplification: full platform environment can be started on a low-end machine with one command,
   \end{enumerate}
 
   \begin{textcode}
@@ -273,8 +273,41 @@ developer1# docker run company/product +*
 developer2# docker run company/product --dummy-repositories +*
   \end{textcode}
 
-  \footnotetext[1]{Slides with more details: https://goo.gl/iaMt43}
-  \footnotetext[2]{You are not prohibited from using multirepo layout}
+  \footnotetext[1]{Previous slides on the subject: https://goo.gl/iaMt43}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Effectful creation}
+dsafgsdfhsdgh TODO FIXME
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Lifecycle}
+  Global resources are a fact of life:
+  \begin{enumerate}
+  \item Connection pools, thread pools
+  \item Servers and external endpoints
+  \item Configurations, metrics, heartbeats
+  \item External log sinks
+  \end{enumerate}
+  They must be managed by DI to create reusable components.
+  They must be closed properly after integration tests.
+  We must not set them up anew in every test.
+
+  A myriad of global resources may be started by an application.
+  Many of them will have to be started for integration tests.
+
+  \begin{scalacode}
+  import org.http4s.client._
+  import org.http4s.client.blaze._
+
+  class BlazeClientModule[F[_]: TagK: ConcurrentEffect] 
+    extends ModuleDef {
+    make[Client[F]].fromResource { ec: ExecutionContext => 
+      BlazeClientBuilder[F](ec).resource
+    }
+  }
+  \end{scalacode}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -295,8 +328,9 @@ class HttpServer(@ConfPath("http.listen") listenOn: HostPort) {
   \item Searches them for a specific \mintinline{scala}{@ConfPath} annotation,
   \item Tries to find corresponding sections in config source,
   \item Extends plan with config values,
-  \item $\Rightarrow$ Config values are being resolved before instantiation begins,
-  \item $\Rightarrow$ problems are being shown quickly and all at once.
+  \item $\Rightarrow$ Config values are parsed before instantiation begins,
+  \item $\Rightarrow$ Problems are shown quickly and all at once,
+  \item $\Rightarrow$ Compile-time plugin checker validates config.
   \end{enumerate}
 \end{frame}
 
@@ -314,7 +348,7 @@ class AccountingModule extends PluginDef {
 val plugins = new PluginLoaderDefaultImpl(
   PluginConfig(Seq("com.company.plugins"))
 ).load()
-// ... pass to an Injector
+// ... pass loaded modules to Injector
   \end{scalacode}
   \begin{enumerate}
   \item Useful while you are prototyping your app,
@@ -325,16 +359,15 @@ val plugins = new PluginLoaderDefaultImpl(
 \begin{frame}
   \frametitle{Circular dependencies}
   \begin{enumerate}
-    \item Supported, \texttt{Proxy} concept used,
-    \item Optional: you may turn Circular Dependency support off.
-    \item By-name parameters (\mintinline{scala}{class C(param: => P)}) supported, without run-time code-generation,
-    \item Compile-time and run-time code-generation for other cases,
+    \item Supported via \texttt{Proxies},
+    \item Cyclic by-name parameters (\mintinline{scala}{class C(param: => P)}) will work without proxies,
+    \item Circular dependency support can be disabled.
   \end{enumerate}
 
   Limitations:
   \begin{enumerate}
-    \item You cannot use an injected parameter immediately in a constructor,
-    \item you cannot have circular non-by-name dependencies with final classes,
+    \item You cannot use an injected parameter immediately during initii,
+    \item You cannot use non-by-name circular dependencies with final classes,
   \end{enumerate}
 \end{frame}
 
@@ -343,9 +376,9 @@ val plugins = new PluginLoaderDefaultImpl(
 \begin{scalacode}
 trait UsersService {
   protected def repository: UsersRepo
+  
   def add(user: User): Unit = {
     repository.put(user.id, user)
-    ???
   }
 }
 \end{scalacode}
@@ -357,7 +390,7 @@ make[UsersService]
 
 \begin{enumerate}
 \item Corresponding class will be generated\footnotemark[1] by \distage,
-\item Null-arg abstract methods will be wired with context values,
+\item Abstract defs will be wired with values from the object graph,
 \end{enumerate}
 \footnotetext[1]{both runtime and compile-time cogen supported}
 
@@ -470,11 +503,11 @@ val plan = injector.plan(definition)
 \end{frame}
 
 \begin{frame}
-  \frametitle{Plan Introspection: graphviz dumps\footnotemark[1]}
+  \frametitle{Plan Introspection: graphviz dump\footnotemark[1]}
   \begin{figure}
     \includegraphics[width=\textwidth]{media/plan-example-dot}
   \end{figure}
-  \footnotetext[1]{This picture has been generated automatically by distage extension}
+  \footnotetext[1]{Generated automatically by \texttt{GraphDumpObserver} distage extension}
 \end{frame}
 
 \begin{frame}[fragile]
@@ -501,7 +534,7 @@ println(dependencies.tree(DIKey.get[AccountsApiImpl]))
     \includegraphics[width=\textwidth]{media/dependency-tree.png}
 \end{figure}
 
-Circular dependencies are specifically marked.
+Circular dependencies are marked with a circle symbol.
 \end{frame}
 
 \begin{frame}[fragile]
@@ -561,15 +594,15 @@ case (ctx, op) =>
 
 \begin{frame}[fragile]
   \frametitle{\distage: status and things to do}
-  \distage{} is:
+  \distage{} 0.7 is:
   \begin{enumerate}
     \item ready to use,
-    \item in real production,
-    \item all Run-time features are available,
-    \item all Compile-time features except of full Producer are available.
+    \item in production for over 1 year,
+    \item all runtime features are available,
+    \item all compile-time features except for full compile-time mode are available.
   \end{enumerate}
   \vspace{0.3cm}
-  Our plans:
+  What's next:
   \begin{enumerate}
     \item \code{ProducerF\lbrack\_\rbrack} --- Producer within a monad,
     \item New Roles API,
@@ -585,7 +618,7 @@ case (ctx, op) =>
   We have a vision backed by our tools:
   \begin{enumerate}
     \item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
-    \item LogStage: zero-cost logging framework,
+    \item LogStage: structured logging framework,
     \item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
     \item \textit{Continous Delivery} guidelines for Role-based process,
     \item \textit{Percept-Plan-Execute} Generative Programming approach, abstract machine and computational model.
@@ -615,14 +648,19 @@ case (ctx, op) =>
 
 \begin{frame}[fragile]
   \frametitle{Teaser: LogStage}
-  A log call \dots
+  A simple logging call \dots
   \begin{scalacode}
 log.info(s"$user logged in with $sessionId!")
   \end{scalacode}
 
-  \dots may be rendered as a text like \texttt{17:05:18 UserService.login user=John Doe logged in with sessionId=DEADBEEF!}
+  May be rendered as text:
+  \newline
+  \texttt{
+  17:05:18 UserService.login user=John Doe logged in with sessionId=DEADBEEF!
+  }
+  \newline
 
-  \dots or a structured JSON:
+  Or as structured JSON:
   \begin{jsoncode}
 {
   "user": "John Doe",
@@ -674,11 +712,11 @@ service Service {
     \begin{enumerate}
         \item coding for 18 years, 10 years of hands-on commercial engineering experience,
         \item has been leading a cluster orchestration team in Yandex, ``the Russian Google'',
-        \item implemented ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
+        \item at Yandex worked on ``\textit{Interstellar Spaceship}'' -- an orchestration solution to manage 50K+ physical machines across 6 datacenters,
         \item Owns an Irish R\&D company, https://7mind.io,
         \item Contact: team@7mind.io,
         \item Github: https://github.com/pshirshov
-        \item Download slides: https://github.com/7mind/slides/
+        \item Slides: https://github.com/7mind/slides/
     \end{enumerate}
 \end{frame}
 
