@@ -369,7 +369,7 @@ object App extends IOApp {
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Effectful creation: .fromEffect}
+\frametitle{Effectful creation: \code{.fromEffect}}
   Global mutable state must be created effectfully, but doesn't have to be deallocated. e.g. a global parallelism limiter:
 
   \begin{scalacode}
@@ -685,7 +685,7 @@ case (ctx, op) =>
   \vspace{0.3cm}
   What's next:
   \begin{enumerate}
-    \item New Roles API,
+    \item New Resource-based Roles API,
     \item Scala.js support,
     \item Compile-time Producer,
     \item Isolated Classloaders for Roles (in future),
