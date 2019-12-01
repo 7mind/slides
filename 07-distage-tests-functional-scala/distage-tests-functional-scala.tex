@@ -468,6 +468,55 @@ object JustATestZioDummy extends JustATest[zio.IO] with Dummy
   \end{figure}
 \end{frame}
 
+\section{distage}
+\begin{frame}
+  \frametitle{How it works: Plans}
+  \distage takes your bindings and then:
+  \begin{enumerate}
+    \item translates bindings into simple Turing-incomplete DSL (like \code{make}, \code{reference}, etc.),
+    \item represents the DSL statements as Directed Acyclic Graph using dependecy information and breaking circular dependencies if any,
+    \item resolves conflicts (one DAG node with several associated operations),
+    \item performs Garbage Collection (yeah, real one),
+    \item applies other transformations (like config reference resolution),
+    \item turns the DAG back into sequential form --- a Plan --- with topological sorting.
+    \item $\Rightarrow$ the Plan may be introspected, printed, executed in compile-time by a code generator or executed in runtime.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+    \huge \distage performs optimal ahead of time planning.
+    \\
+    It doesn't  do any unnecessary job.
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{One More Thing: Roles}
+  \distage allow you to fuse microservices into ``flexible monoliths''.
+
+  \vspace{0.3cm}
+  We may:
+  \begin{enumerate}
+  \item Develop services (\textit{Roles}\footnotemark[1]) separately, even in multirepo,
+  \item Build a single Docker image with multiple Roles in it,
+  \item Pass Roles we want to start as commandline parameters (and run several Roles within one process),
+  \item $\Rightarrow$ higher computation density, savings on infrastructure,
+  \item $\Rightarrow$ \textit{substantial} development simplification: full environment can be started on a low-end machine with one command.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+    \texttt{distage-framework} is the most productive way to write maintainable pure functional applications with ZIO (and any other monad).
+  \end{figure}
+  \begin{figure}
+    \texttt{distage-testkit} is the best way to make your tests performant and reliable.
+  \end{figure}
+  \begin{figure}
+    \distage is adopted by several different companies and tested by two years of production usage.
+  \end{figure}
+\end{frame}
 
 \begin{frame}
     \frametitle{Thank you for your attention}
