@@ -1,0 +1,501 @@
+\documentclass[usenames,dvipsnames]{beamer}
+    \mode<presentation> {
+    \usetheme{Montpellier}
+    \useoutertheme{tree}
+    \usecolortheme{beaver}
+    %\setbeamertemplate{footline} % To remove the footer line in all slides uncomment this line
+    \setbeamertemplate{footline}[page number] % To replace the footer line in all slides with a simple slide count uncomment this line
+    \setbeamertemplate{navigation symbols}{} % To remove the navigation symbols from the bottom of all slides uncomment this line
+    \setbeamersize{text margin left=8mm,text margin right=5mm}
+    }
+
+    \usepackage{graphicx} % Allows including images
+    \usepackage{booktabs} % Allows the use of \toprule, \midrule and \bottomrule in tables
+    \usepackage{minted}
+    \usepackage{xcolor}
+    \usepackage[utf8]{inputenc}
+    \usepackage{pifont}
+    \usepackage{xspace}
+    \usepackage{newunicodechar}
+    \usepackage{hyperref}
+
+    \usepackage[pdf]{graphviz}
+
+    \newunicodechar{✪}{\ding{74}}
+
+    \definecolor{mintedbackground}{rgb}{0.95,0.95,0.95}
+    \newcommand{\code}[1]{\colorbox{lightgray}{\texttt{#1}}}
+    \newcommand{\distage}{\texttt{distage}\xspace}
+
+\newminted{scala}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
+
+\newminted{text}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
+
+\newminted{json}{
+    bgcolor=mintedbackground,
+    fontfamily=tt,
+    linenos=true,
+    numberblanklines=true,
+    numbersep=5pt,
+    gobble=0,
+    frame=leftline,
+    framerule=0.4pt,
+    framesep=2mm,
+    funcnamehighlighting=true,
+    tabsize=4,
+    obeytabs=false,
+    mathescape=false
+    samepage=false, %with this setting you can force the list to appear on the same page
+    showspaces=false,
+    showtabs =false,
+    texcl=false,
+}
+
+    \setminted{fontsize=\footnotesize,baselinestretch=1}
+
+    \usepackage{tikz}
+    \usetikzlibrary{positioning}
+    \graphicspath{{target/media/}}
+
+    \title{Hyperpragmatic pure FP testing with distage-testkit}
+
+    \institute[Septimal Mind Ltd]
+    {
+    Septimal Mind Ltd\\
+    \medskip
+    \textit{team@7mind.io}
+    }
+    \date{\today}
+
+
+\makeatletter
+\setbeamertemplate{headline}
+{%
+    \begin{beamercolorbox}[wd=\paperwidth,colsep=1.5pt]{upper separation line head}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=\paperwidth,ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{title in head/foot}
+      \usebeamerfont{title in head/foot}\insertshorttitle
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=\paperwidth,ht=2.5ex,dp=1.125ex,%
+      leftskip=.3cm,rightskip=.3cm plus1fil]{section in head/foot}
+      \usebeamerfont{section in head/foot}%
+      \ifbeamer@tree@showhooks
+        \setbox\beamer@tempbox=\hbox{\insertsectionhead}%
+        \ifdim\wd\beamer@tempbox>1pt%
+          \hskip2pt\raise1.9pt\hbox{\vrule width0.4pt height1.875ex\vrule width 5pt height0.4pt}%
+          \hskip1pt%
+        \fi%
+      \else%
+        \hskip6pt%
+      \fi%
+      \insertsectionhead
+      \usebeamerfont{subsection in head/foot}%
+      \ifbeamer@tree@showhooks
+        \setbox\beamer@tempbox=\hbox{\insertsubsectionhead}%
+        \ifdim\wd\beamer@tempbox>1pt%
+          \ \raise1.9pt\hbox{\vrule width 5pt height0.4pt}%
+          \hskip1pt%
+        \fi%
+      \else%
+        \hskip12pt%
+      \fi%
+      \insertsubsectionhead\hfill\insertframenumber/\inserttotalframenumber\hspace{0.5em}
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=\paperwidth,colsep=1.5pt]{lower separation line head}
+    \end{beamercolorbox}
+}
+\makeatother
+
+\begin{document}
+
+\begin{frame}
+%\titlepage
+
+\begin{figure}
+\color{RubineRed}
+\Huge Hyperpragmatic pure FP testing \\
+with \\
+distage-testkit
+
+\rule{\linewidth}{1mm}
+
+\normalsize Functional Scala 2019
+\end{figure}
+
+\begin{figure}
+  Septimal Mind Ltd \\
+  \textit{team@7mind.io} \\
+  \includegraphics[width=0.2\textwidth]{media/logo_7mind.png}
+\end{figure}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Tests and Test Taxonomies}
+
+\begin{frame}
+  \frametitle{Not all the tests are equal}
+
+  \begin{figure}
+  Tests are important. We know that. \\
+  Tests are the simplest way to define and verify important contracts. \\
+  \Huge We write tests. A lot of. \\
+  \end{figure}
+
+  \begin{figure}
+  But \\
+  \dots \\
+  some tests prove themselves useful and some do not.
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Not all the tests are equal}
+
+  \begin{figure}
+  \Huge Which tests are good and which are bad?
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Bad test criterias}
+
+  Bad tests are:
+  \begin{itemize}
+    \item \textbf{Slow},
+    \item \textbf{Unstable}: they fail randomly,
+    \item \textbf{Nonviable}: they don’t survive refactorings,
+    \item \textbf{Demanding}: they require complex preconditions to be met: external services up and running, fixtures loaded, etc, etc,
+    \item \textbf{Incomprehensible}: they signal about a problem but don’t help us to localize the cause.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge Bad tests bring us less value than the resources we spend on them
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge How may we make our tests better?
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge Let's introduce some terminology
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Test Taxonomy: Encapsulation Axis}
+  Let's say that every test would fall under one of the following categories:
+
+  \begin{enumerate}
+    \item \textbf{Blackbox} tests check just interfaces not knowing anything about implementations behind them,
+    %%\item \textbf{Effectual} tests use only interfaces, but also verify some side-effects (a file created on the disk) which cannot be, or are hard to explicitly express.
+    \item \textbf{Whitebox} tests may know about implementations and check them directly, sometimes even breaking into some internal state to verify if it conforms to test expectations.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Test Taxonomy: Isolation Axis}
+  Let's say that every test would fall under one of the following categories:
+
+  \begin{itemize}
+    \item \textbf{Atomic} tests check just one ``unsplittable'' software component,
+    \item \textbf{Group} tests check multiple software components,
+    \item \textbf{Communication} tests communicate with outer world (databases, API providers, etc, etc).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \large You may extend and modify this Test Taxonomy as it would be convenient for you.
+  \end{figure}
+
+  \begin{figure}
+    \includegraphics[width=0.75\textwidth]{media/ctt.png}
+  \end{figure}
+
+  \begin{figure}
+  More about test taxonomies: \url{https://blog.7mind.io/constructive-test-taxonomy.html}
+  \end{figure}
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Test Taxonomy: Why So?}
+  \begin{figure}
+    According to our experience the best tests are \\
+     \textbf{Blackbox} tests with \textbf{Atomic} or \textbf{Group} Isolation Level.
+  \end{figure}
+  \begin{figure}
+    And it's obvious.
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Communication tests}
+  But in real projects most of the tests fall under \textbf{Communication} category  (``Integration'' tests).
+
+  \vspace{0.3cm}
+  Why?
+  \begin{enumerate}
+  \item Engineers want to test The Whole Thing,
+  \item It's hard to separate components,
+  \item etc, etc\dots
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Communication tests can be more useful}
+
+  \begin{figure}
+  We may replace \textit{integration components} with \textit{Dummies}\footnotemark[1].
+  \end{figure}
+
+  \begin{figure}
+  This way we may turn \\
+  \textbf{Blackbox Communication} tests \\
+  into \\
+  \textbf{Group} or \textbf{Atomic}
+  \end{figure}
+
+  \footnotetext[1]{people also call them \textit{``Fakes''}, \textit{``in-memory implementations''} or \textit{``Mocks''}}
+\end{frame}
+
+
+\section{Dual Test Tactic}
+\begin{frame}
+  \frametitle{Dual Test Tactic}
+  The same test scenario executed with both Production and Dummy implementations of \textit{integration components} is beneficial:
+
+  \begin{enumerate}
+  \item We can test business logic quickly, without any interference,
+  \item We still able to verify component behaviour in ``real'' circumstances,
+  \item We have to follow \textbf{LSP} and design better to make code compatible with \textbf{Dual Test Tactic}.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dual Test Tactic: ideas}
+
+  \begin{enumerate}
+    \item \underline{Ignore} \textbf{Communication} tests in case their dependencies are unsatisfied (service unavailable), don't fail,
+    \item \underline{Avoid} automatic \textit{``Mocks''}, they prevent encapsulation,
+    \item \underline{Never run} heavy dependencies in-process (don't bring whole Kafka or Cassandra into the classpath. \textbf{PLEASE}).
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dual Test Tactic: The Main Issue}
+
+  \begin{figure}
+  It's easy to setup test dependencies while working with \textit{Dummies} \\
+  But you have to do things differently for \textit{Production} dependencies.
+  \end{figure}
+
+  We have to take care of:
+  \begin{enumerate}
+    \item Resource acquisition and Cleanups,
+    \item Speed,
+    \item Memoization and resource reuse,
+    \item Interference,
+    \item \dots
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dual Test Tactic: Dummy testcase steps}
+  \begin{figure}
+  \digraph[scale=0.7]{dummytestplan}{
+      node  [style="rounded,filled,bold", shape=box, width=1.3]
+      r1 [label="mock[UserRepo]"];
+      r2 [label="mock[AccountsRepo]"];
+      s1 [label="make[UserService]"];
+      s2 [label="make[AccountsService]"];
+      t1 [label="run[MyTestCase]"];
+      t2 [label="run[AnotherTestCase]"];
+      r1 -> s1 -> t1;
+      r2 -> s2 -> t1;
+      s1 -> t2;
+      s2 -> t2;
+   }
+   \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dual Test Tactic: Real testcase steps}
+  \vspace{-1cm}
+  \begin{figure}
+  \digraph[scale=0.4]{prodtestplan}{
+    graph [pad="0.5", nodesep="0.3", ranksep="0.3"];
+    splines="false";
+      node  [style="rounded,filled,bold", shape=box, width=1.3]
+      dbchk [label="check if database available"]
+      db1 [label="make[DbDriver]"]
+      dbt [label="make temporary tables"]
+      dbtc [label="remove tables"]
+      r1 [label="make[UserRepo]"];
+      r2 [label="make[AccountsRepo]"];
+      s1 [label="make[UserService]"];
+      s2 [label="make[AccountsService]"];
+      t1 [label="run[MyTestCase]"];
+      t2 [label="run[AnotherTestCase]"];
+  subgraph cluster_0 {
+      label="Setup";
+      dbchk -> db1;
+      db1 -> dbt;
+      dbt -> r1 -> s1;
+      dbt -> r2 -> s2;
+    }
+  subgraph cluster_1 {
+        label="Execute";
+      s1 -> t1;
+      s2 -> t1;
+      s1 -> t2;
+      s2 -> t2;
+  }
+  subgraph cluster_2 {
+        label="Cleanup";
+      t1 -> dbtc;
+      t2 -> dbtc;
+  }
+   }
+   \end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dual Test Tactic: Real testcase steps}
+  And that's not everything!
+
+  \vspace{0.3cm}
+  We may need to add more aspects, like run Docker containers and await until they open ports. And stop them after the tests. Etc, etc\dots
+
+  \vspace{0.3cm}
+  It's hard to setup variable contexts. Manual wiring is hard to maintain and suffers from combinatoric explosion of possible code paths.
+  Cake pattern doesn't make much difference. Even heavy machinery like conventional DI frameworks fails.
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \huge Dual Test Tactic \\
+  may be very pricy under usual circumstances.
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge Can we make it cheap?
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge Yes.
+  \end{figure}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\frametitle{The Goal}
+
+We want to write code like this and never care about setting things up:
+
+\begin{scalacode}
+class JustATest[F[+_, +_]] {
+  "service" must {
+    "do something" in {
+      (users: UserService[F], accounts: AccountingService[F]) =>
+      for {
+        user  <- users.create()
+        balance <- accounts.getBalance(user)
+      } yield {
+        assert(balance == 0)
+      }
+    }
+  }
+  \end{scalacode}
+\end{frame}
+
+
+\begin{frame}
+  \begin{figure}
+  \Huge Let's look at a \underline{real} example\dots
+  \end{figure}
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{Thank you for your attention}
+    \begin{center}
+      distage website: \url{https://izumi.7mind.io}
+    \end{center}
+    \begin{center}
+      \color{RubineRed}
+      Septimal Mind is an Irish software consultancy and R\&D Company
+
+      \vspace{0.3cm}
+      We're looking for clients, contributors, adopters and colleagues ;)
+    \end{center}
+    \begin{center}
+      Contact: team@7mind.io
+
+      \vspace{0.3cm}
+      Github: \url{https://github.com/7mind}
+
+      \vspace{0.3cm}
+      Slides: \url{https://github.com/7mind/slides}
+    \end{center}
+    \begin{center}
+      \color{RoyalBlue}
+      Follow us on Twitter
+
+      \vspace{0.3cm}
+      \url{https://twitter.com/shirshovp}
+
+      \vspace{0.3cm}
+      \url{https://twitter.com/kai_nyasha}
+    \end{center}
+\end{frame}
+
+\end{document}
