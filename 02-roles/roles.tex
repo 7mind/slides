@@ -15,7 +15,7 @@
     %\usepackage[mathletters]{ucs}
     %\usepackage[utf8x]{inputenc}
     \usepackage[utf8]{inputenc}
-    \usepackage{pifont}    
+    \usepackage{pifont}
     \usepackage{newunicodechar}
     \newunicodechar{✪}{\ding{74}}
 
@@ -47,7 +47,7 @@ texcl=false,
 
     \usepackage {tikz}
     \usetikzlibrary {positioning}
-    \graphicspath {{target/media/}}
+    %\graphicspath {{media/}}
     %----------------------------------------------------------------------------------------
     %	TITLE PAGE
     %----------------------------------------------------------------------------------------
@@ -65,8 +65,8 @@ texcl=false,
 \begin{document}
 
 \begin{VerbatimOut}{ex-scala-roles.tmp}
-@RoleId("testservice") 
-class TestService[F[_] : Monad](http: HttpSrv[F]) 
+@RoleId("testservice")
+class TestService[F[_] : Monad](http: HttpSrv[F])
   extends IzService {
     override def start(): Unit = http.start()
     override def stop(): Unit = http.stop()
@@ -145,9 +145,9 @@ Microservices are intended to address Monolithic Design problems.
 \begin{itemize}
 \item \textit{Software components} are still in place -- in form of Services.
       All the potential pitfails of component design apply to microservices,
-\item Many checks which may be done by your compiler in case of monolithic design have  
-     to be performed by integration test suites (in case you have them, it's hard to write),   
-\item Many tasks are delegated to operations: in case of a monolith your dependency graph is being 
+\item Many checks which may be done by your compiler in case of monolithic design have
+     to be performed by integration test suites (in case you have them, it's hard to write),
+\item Many tasks are delegated to operations: in case of a monolith your dependency graph is being
       processed by your DI framework\footnotemark[1], in case of microservices it is\dots in worst case processed by people,
       in best case requires an orchestration tool. But we don't have any single great tool yet,
 \item An orchestration tool does \textit{exactly the same job} your DI framework may do. And lot more things.
@@ -166,7 +166,7 @@ We need something with all the positive traits of Microservices and Monoliths bu
 \item Let's choose which \textit{roles} we wish to assign to a before we start it,
 \item Roles come from Classpath, may be discovered dynamically or statically,
 \item It resembles Containers and OSGi,
-\item Containers have some disadvantages. 
+\item Containers have some disadvantages.
       They provide you a lot so we get used to think that they are sluggish on startup.
       Isolated classloaders are inconvenient. Dynamic DI is a nightmare,
 \item Let's get rid of Dynamic DI. And let's keep isolation optional.
@@ -185,7 +185,7 @@ We need something with all the positive traits of Microservices and Monoliths bu
 Roles allow you to do \textbf{everything} you can do with microservices plus have additional benefits\footnotemark[1]:
 \begin{itemize}
 \item Higher Density makes Development Flows better: instant startup of any combination of roles,
-\item Higher Density makes Operations easier: any combination of roles for any container. 
+\item Higher Density makes Operations easier: any combination of roles for any container.
     You don't need to start 5 containers to have 5 services with low load profile,
 \item Smaller distribution size: Just one image, less traffic,
 \item More static checks $\Rightarrow$ higher reliability,
@@ -201,9 +201,9 @@ Roles allow you to do \textbf{everything} you can do with microservices plus hav
 \item Startup time. Do you remember Tomcat? Design matters\footnotemark[1],
 \item Weaker isolation $\Rightarrow$ more dangerous failures,
 \item Dependency convergence. You may need isolated classloaders\footnotemark[2],
-\item Heterogenous systems: C\#, Scala and Go won't mix in a single process\footnotemark[3], 
-\item Distributed communication between Roles: most likely you don't want it. Otherwise 
-      you need a mechanism similar to: distrubuted DI framework 
+\item Heterogenous systems: C\#, Scala and Go won't mix in a single process\footnotemark[3],
+\item Distributed communication between Roles: most likely you don't want it. Otherwise
+      you need a mechanism similar to: distrubuted DI framework
       built around \textit{Service Discovery} and \textit{Cluster State} concepts. See: \code{dOSGi},
 \item You need to build a nice Continuous Delivery pipeline.
 \end{itemize}
@@ -216,12 +216,12 @@ Roles allow you to do \textbf{everything} you can do with microservices plus hav
 
 \begin{frame}
 \begin{figure}
-\Huge 
+\Huge
 \color{RubineRed} DISTAGE
 \noindent
 {\color{RubineRed} \rule{\linewidth}{1mm} }
 \Large Next-gen Dependency Injection Framework for Scala
-\normalsize Generative, Modular, R✪les and Garbage Collection included 
+\normalsize Generative, Modular, R✪les and Garbage Collection included
 \end{figure}
 \end{frame}
 
@@ -230,7 +230,7 @@ Roles allow you to do \textbf{everything} you can do with microservices plus hav
 \begin{itemize}
 \item Next generation of DI.
 \item Generative, built on PPER principle. Allows you to plan context provisioning, edit the plan, then execute it,
-\item Fully aware of Scala typesystem, allows you to fuse FP and OOP lot better than before, 
+\item Fully aware of Scala typesystem, allows you to fuse FP and OOP lot better than before,
 \item Bundled Garbage Collector,
 \item \textit{Bundled Roles mechanism} built as an extension. Cheap for developer because of Garbage Collection,
 \item Bundled \code{typesafe-config} support built as an extension,
@@ -240,7 +240,7 @@ Roles allow you to do \textbf{everything} you can do with microservices plus hav
 
 \begin{frame}
 \frametitle{How may\footnotemark[1] it look like: Dynamic\footnotemark[2] loader example ?}
-\scalacode{target/ex-scala-roles.tmp}
+\scalacode{ex-scala-roles.tmp}
 \footnotetext[1]{Roles API is not published yet. More details to follow.}
 \footnotetext[2]{Static one is also available.}
 \end{frame}
@@ -275,7 +275,7 @@ We have a vision backed by our tools:
 \item Idealingua: transport and codec agnostic gRPC alternative with rich modeling language,
 \item LogStage: zero-cost logging framework,
 \item \textit{Fusional Programming and Design} guidelines. We love both FP and OOP,
-\item \textit{Continous Delivery} guidelines for Role-based process, 
+\item \textit{Continous Delivery} guidelines for Role-based process,
 \item \textit{Percept-Plan-Execute} Generative Programming approach, abstract machine and computational model.
 Addresses Project Planning (see Operations Research). Examples: orchestration, build systems.
 \end{itemize}

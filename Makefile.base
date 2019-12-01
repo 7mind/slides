@@ -8,8 +8,8 @@ LATEX_ARGS=--interaction=nonstopmode -shell-escape -file-line-error  -file-line-
 SRCS = $(wildcard *.tex)
 PDFS = $(patsubst %.tex,%.pdf,$(SRCS))
 
-JUNK =  *.toc *.aux *.pdf *.ps *.eps *.log *.lof *.bbl *.blg *.dvi *.log *.out *.tmp
-JUNK_PARAMS = $(foreach mask,$(JUNK),-name "$(mask)" -or )
+#JUNK =  *.toc *.aux *.pdf *.ps *.eps *.log *.lof *.bbl *.blg *.dvi *.log *.out *.tmp
+#JUNK_PARAMS = $(foreach mask,$(JUNK),-name "$(mask)" -or )
 
 .PHONY: all clean pdf
 
@@ -22,14 +22,14 @@ pdf: $(PDFS)
 	@echo "== Compiling $*..."
 	@echo ""
 	mkdir -p $(PDF_DIR)
-	cp -R media/ $(PDF_DIR)/media
-	cp $*.tex $(PDF_DIR)/
+	ln -s $(shell pwd)/media/ $(PDF_DIR)/media || true
+	ln -s $(shell pwd)/$*.tex $(PDF_DIR)/ || true
 	cd $(PDF_DIR) && $(LATEX) $(LATEX_ARGS) $*
 	cd $(PDF_DIR) && $(LATEX) $(LATEX_ARGS) $*
 	# https://askubuntu.com/questions/113544/how-can-i-reduce-the-file-size-of-a-scanned-pdf-file
 	gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress -dNOPAUSE -dQUIET -dBATCH -sOutputFile=$*.pdf $(PDF_DIR)/$*.pdf
-	#find $(PDF_DIR) -name '*.pdf' -exec echo gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/prepress -dNOPAUSE -dQUIET -dBATCH -sOutputFile=$(basename {}) {} \;
-	#find $(PDF_DIR) -name '*.pdf.tmp' -exec sh -c 'mv -- "$$0" ../"$${0%.tmp}"' {} \;
+
 
 clean:
-	find . \( $(JUNK_PARAMS) -false \) -delete
+	rm -rf $(PDF_DIR)
+	rm -f *.pdf

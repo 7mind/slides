@@ -15,7 +15,7 @@
     %\usepackage[mathletters]{ucs}
     %\usepackage[utf8x]{inputenc}
     \usepackage[utf8]{inputenc}
-    \usepackage{pifont}    
+    \usepackage{pifont}
     \usepackage{newunicodechar}
     \newunicodechar{✪}{\ding{74}}
 
@@ -47,7 +47,7 @@ texcl=false,
 
     \usepackage {tikz}
     \usetikzlibrary {positioning}
-    \graphicspath {{target/media/}}
+    %\graphicspath {{target/media/}}
     %----------------------------------------------------------------------------------------
     %	TITLE PAGE
     %----------------------------------------------------------------------------------------
@@ -72,7 +72,7 @@ object Example {
 
   // ...
 
-  val data = 
+  val data =
       new HashMap[String, String]()
   data.put("from", "userA")
   data.put("to", "userB")
@@ -81,7 +81,7 @@ object Example {
 \end{VerbatimOut}
 
 \begin{VerbatimOut}{ex-scala-logging.tmp}
-class Example 
+class Example
   extends LazyLogging { // Let's break SOLID!
   //...
 
@@ -99,7 +99,7 @@ logger.debug(s"Received a message from $user")
 \begin{VerbatimOut}{ex-scala-tree-out.tmp}
 Expr(Apply(Select(
   Apply(
-    Select(Select(Ident("scala"), scala.StringContext), 
+    Select(Select(Ident("scala"), scala.StringContext),
       TermName("apply"))
       , List(Literal(Constant("Received a message from "))
           , Literal(Constant(""))
@@ -164,23 +164,23 @@ class ExampleService(log: IzLogger) {
 
 \begin{frame}
 \frametitle{\code{scala-logging} API example}
-\scalacode{target/ex-scala-logging.tmp}
+\scalacode{ex-scala-logging.tmp}
 \end{frame}
 
 \begin{frame}
 \frametitle{\code{fluentd} logging API example}
-\scalacode{target/ex-fluentd.tmp}
+\scalacode{ex-fluentd.tmp}
 \end{frame}
 
 \section{The solution: code as structure}
 \begin{frame}
 \frametitle{The code\dots}
-\scalacode{target/ex-scala-tree-source.tmp}
+\scalacode{ex-scala-tree-source.tmp}
 \end{frame}
 
 \begin{frame}
 \frametitle{\dots~is structured}
-\scalacode{target/ex-scala-tree-out.tmp}
+\scalacode{ex-scala-tree-out.tmp}
 \end{frame}
 
 \begin{frame}
@@ -200,7 +200,7 @@ class ExampleService(log: IzLogger) {
 
 \begin{frame}
 \begin{figure}
-\Huge 
+\Huge
 \color{RubineRed} L✪GSTAGE
 \noindent
 {\color{RubineRed} \rule{\linewidth}{1mm} }
@@ -228,7 +228,7 @@ class ExampleService(log: IzLogger) {
 
 \begin{frame}
 \frametitle{An example}
-\scalacode{target/ex-scala-logstage.tmp}
+\scalacode{ex-scala-logstage.tmp}
 Followed by a cute screenshot of course:
 \begin{figure}
     \includegraphics[width=\textwidth]{media/logstage-console.png}
@@ -238,7 +238,7 @@ Followed by a cute screenshot of course:
 \begin{frame}
 \frametitle{Something nice for our robots}
 \begin{figure}
-    \inputminted[fontsize=\scriptsize]{json}{target/ex-json-out.tmp}
+    \inputminted[fontsize=\scriptsize]{json}{ex-json-out.tmp}
 \end{figure}
 \end{frame}
 
