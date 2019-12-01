@@ -454,7 +454,11 @@ class JustATest[F[+_, +_]] {
       }
     }
   }
-  \end{scalacode}
+}
+
+object JustATestZioProd extends JustATest[zio.IO] with Prod
+object JustATestZioDummy extends JustATest[zio.IO] with Dummy
+\end{scalacode}
 \end{frame}
 
 
