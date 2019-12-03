@@ -349,12 +349,12 @@ distage-testkit
   \begin{figure}
   \digraph[scale=0.7]{dummytestplan}{
       node  [style="rounded,filled,bold", shape=box, width=1.3]
-      r1 [label="mock[UserRepo]"];
-      r2 [label="mock[AccountsRepo]"];
-      s1 [label="make[UserService]"];
-      s2 [label="make[AccountsService]"];
-      t1 [label="run[MyTestCase]"];
-      t2 [label="run[AnotherTestCase]"];
+      r1 [label="make[UserRepo]", color=darkolivegreen1];
+      r2 [label="make[AccountsRepo]", color=darkolivegreen1];
+      s1 [label="make[UserService]", color=darkolivegreen1];
+      s2 [label="make[AccountsService]", color=darkolivegreen1];
+      t1 [label="run[MyTestCase]", color=cadetblue1];
+      t2 [label="run[AnotherTestCase]", color=cadetblue1];
       r1 -> s1 -> t1;
       r2 -> s2 -> t1;
       s1 -> t2;
@@ -365,55 +365,108 @@ distage-testkit
 
 \begin{frame}
   \frametitle{Dual Test Tactic: Real testcase steps}
-  \vspace{-1cm}
-  \begin{figure}
-  \digraph[scale=0.4]{prodtestplan}{
-    graph [pad="0.5", nodesep="0.3", ranksep="0.3"];
-    splines="false";
-      node  [style="rounded,filled,bold", shape=box, width=1.3]
-      dbchk [label="check if database available"]
-      db1 [label="make[DbDriver]"]
-      dbt [label="make temporary tables"]
-      dbtc [label="remove tables"]
-      r1 [label="make[UserRepo]"];
-      r2 [label="make[AccountsRepo]"];
-      s1 [label="make[UserService]"];
-      s2 [label="make[AccountsService]"];
-      t1 [label="run[MyTestCase]"];
-      t2 [label="run[AnotherTestCase]"];
-  subgraph cluster_0 {
-      label="Setup";
-      dbchk -> db1;
-      db1 -> dbt;
-      dbt -> r1 -> s1;
-      dbt -> r2 -> s2;
-    }
-  subgraph cluster_1 {
+
+  \begin{columns}
+  \begin{column}[T]{0.4\textwidth}
+    \setlength{\topsep}{0pt}
+    \setlength{\partopsep}{0pt}
+
+    \vspace{-1.3cm}
+    \begin{figure}
+    \hspace*{-1.65cm}
+    \digraph[scale=0.4]{prodtestplan}{
+        graph [pad="0.5", nodesep="0.3", ranksep="0.3"];
+        splines="false";
+        node  [style="rounded,filled,bold", shape=box, width=1.3];
+        dbchk [label="probe database port", color=gold];
+        db1 [label="make[DbDriver]", color=darkgoldenrod1];
+        dbtUsers [label="setup users table", color=darksalmon];
+        dbtAccounts [label="setup accounts table", color=darksalmon];
+        dbtcUsers [label="remove users table", color=darksalmon];
+        dbtcAccounts [label="remove accounts table", color=darksalmon];
+        dbdc [label="close driver", color=darkgoldenrod1];
+        r1 [label="make[UserRepo]", color=darkolivegreen1];
+        r2 [label="make[AccountsRepo]", color=darkolivegreen1];
+        s1 [label="make[UserService]", color=darkolivegreen1];
+        s2 [label="make[AccountsService]", color=darkolivegreen1];
+        t1 [label="run[MyTestCase]", color=cadetblue1];
+        t2 [label="run[AnotherTestCase]", color=cadetblue1];
+    subgraph cluster_0 {
+        label="Setup";
+        labeljust="l";
+        dbchk -> db1;
+        db1 -> dbtUsers;
+        db1 -> dbtAccounts;
+        dbtUsers -> r1 -> s1;
+        dbtAccounts -> r2 -> s2;
+      }
+    subgraph cluster_1 {
         label="Execute";
-      s1 -> t1;
-      s2 -> t1;
-      s1 -> t2;
-      s2 -> t2;
-  }
-  subgraph cluster_2 {
+        labeljust="l";
+        s1 -> t1;
+        s2 -> t1;
+        s1 -> t2;
+        s2 -> t2;
+    }
+    subgraph cluster_2 {
         label="Cleanup";
-      t1 -> dbtc;
-      t2 -> dbtc;
-  }
-   }
-   \end{figure}
+        labeljust="l";
+        t1 -> dbtcUsers;
+        t2 -> dbtcUsers;
+        t1 -> dbtcAccounts;
+        t2 -> dbtcAccounts;
+        dbtcAccounts -> dbdc;
+        dbtcUsers -> dbdc;
+    }
+    }
+    \end{figure}
+  \end{column}
+
+  \begin{column}[T]{0.6\textwidth}
+  \begin{enumerate}
+  \item Order
+  \item How to avoid unneccessary job?
+    \begin{enumerate}
+    \item Memoize resources?..
+    \item In a singleton?..
+    \item When we close resources?..
+    \item On JVM shutdown?.. Oops, SBT\dots
+    \item Disambiguation (same class, different parameters)?..
+    \end{enumerate}
+  \item Resource deallocation
+    \begin{enumerate}
+    \item \dots even after a failure
+    \item Order!
+    \end{enumerate}
+  \item Other integrations, e.g. run Dockers
+    \begin{enumerate}
+      \item \dots and await until they open ports
+      \item \dots and stop them after the tests
+    \end{enumerate}
+  \item Configs
+  \end{enumerate}
+  \end{column}
+  \end{columns}
+
+
 \end{frame}
 
 \begin{frame}
   \frametitle{Dual Test Tactic: Real testcase steps}
-  And that's not everything!
 
-  \vspace{0.3cm}
-  We may need to add more aspects, like run Docker containers and await until they open ports. And stop them after the tests. Etc, etc\dots
+  \begin{itemize}
+  \item Integration points stack together
+  \item \dots and make the problem notably hard
 
-  \vspace{0.3cm}
-  It's hard to setup variable contexts. Manual wiring is hard to maintain and suffers from combinatoric explosion of possible code paths.
-  Cake pattern doesn't make much difference. Even heavy machinery like conventional DI frameworks fails.
+  \item Manual wiring is hard to maintain
+  \item \dots and suffers from combinatoric explosion of possible code paths
+  \item Cake pattern doesn't make much difference
+  \item Conventional DI frameworks fail
+  \end{itemize}
+
+  \begin{figure}
+  \Large  It's hard to setup variable contexts.
+  \end{figure}
 \end{frame}
 
 \begin{frame}
@@ -425,7 +478,7 @@ distage-testkit
 
 \begin{frame}
   \begin{figure}
-  \Huge Can we make it cheap?
+  \Huge Can we make it cheap?           
   \end{figure}
 \end{frame}
 
@@ -482,6 +535,24 @@ object JustATestZioDummy extends JustATest[zio.IO] with Dummy
   \end{figure}
 \end{frame}
 
+
+\begin{frame}
+  \frametitle{\distage}
+  \begin{enumerate}
+  \item is non-invasive.
+    \begin{itemize}
+      \item You can add it to your project keeping business logic intact\dots
+      \item \dots and remove it.
+    \end{itemize}
+  \item does most of the job in compile-time,
+  \item does not depend on \texttt{scala-reflect}\footnotemark[1],
+  \item replaces \texttt{scala-reflect}\footnotemark[2] with own lightweight reflection,
+  \item has virtually complete support of Scala typesystem,
+  \item is not an ad-hoc thing, it has strong theory behind.
+  \end{enumerate}
+  \footnotetext[1]{Since version \texttt{0.10.0}}
+  \footnotetext[2]{https://blog.7mind.io/lightweight-reflection.html}
+\end{frame}
 
 \begin{frame}
   \begin{figure}

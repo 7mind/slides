@@ -2,5 +2,6 @@ SOURCE=$(ls *.tex)
 
 while :; do
 make
+open -a skim *.pdf
 wait_on -w -h $SOURCE
 done
