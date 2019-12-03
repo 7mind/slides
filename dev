@@ -1,0 +1,6 @@
+SOURCE=$(ls *.tex)
+
+while :; do
+make
+wait_on -w -h $SOURCE
+done
