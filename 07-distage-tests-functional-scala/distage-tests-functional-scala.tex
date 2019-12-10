@@ -1,4 +1,4 @@
-\documentclass[usenames,dvipsnames]{beamer}
+\documentclass[usenames,dvipsnames,aspectratio=169]{beamer}
     \mode<presentation> {
     \usetheme{Montpellier}
     \useoutertheme{tree}
@@ -174,12 +174,15 @@ distage-testkit
   \frametitle{Not all the tests are equal}
 
   \begin{figure}
+  \Large
   Tests are important. We know that. \\
   Tests are the simplest way to define and verify important contracts. \\
+  And contracts are crucial for project maintainability and viability. \\
   \Huge We write tests. A lot of. \\
   \end{figure}
 
   \begin{figure}
+  \Large
   But \\
   \dots \\
   some tests prove themselves useful and some do not.
@@ -209,7 +212,8 @@ distage-testkit
 
 \begin{frame}
   \begin{figure}
-  \Huge Bad tests bring us less value than the resources we spend on them
+  \Huge We spend more resources to write and maintain bad tests \\
+  than the value they bring us.
   \end{figure}
 \end{frame}
 
@@ -227,7 +231,7 @@ distage-testkit
 
 \begin{frame}
   \frametitle{Test Taxonomy: Encapsulation Axis}
-  Let's say that every test would fall under one of the following categories:
+  Let's say that every test falls under one of the following categories:
 
   \begin{enumerate}
     \item \textbf{Blackbox} tests check just interfaces not knowing anything about implementations behind them,
@@ -238,7 +242,7 @@ distage-testkit
 
 \begin{frame}
   \frametitle{Test Taxonomy: Isolation Axis}
-  Let's say that every test would fall under one of the following categories:
+  Let's say that every test falls under one of the following categories:
 
   \begin{itemize}
     \item \textbf{Atomic} tests check just one ``unsplittable'' software component,
@@ -253,7 +257,7 @@ distage-testkit
   \end{figure}
 
   \begin{figure}
-    \includegraphics[width=0.75\textwidth]{media/ctt.png}
+    \includegraphics[width=0.7\textwidth]{media/ctt.png}
   \end{figure}
 
   \begin{figure}
@@ -295,12 +299,13 @@ distage-testkit
 
   \begin{figure}
   This way we may turn \\
-  \textbf{Blackbox Communication} tests \\
+  \textbf{Communication} tests \\
   into \\
-  \textbf{Group} or \textbf{Atomic}
+  \textbf{Group} or \textbf{Atomic}\footnotemark[2]
   \end{figure}
 
   \footnotetext[1]{people also call them \textit{``Fakes''}, \textit{``in-memory implementations''} or \textit{``Mocks''}}
+  \footnotetext[2]{this statement is valid for \textbf{Blackbox} tests only}
 \end{frame}
 
 
@@ -311,9 +316,15 @@ distage-testkit
 
   \begin{enumerate}
   \item We can test business logic quickly, without any interference,
-  \item We still able to verify component behaviour in ``real'' circumstances,
-  \item We have to follow \textbf{LSP} and design better to make code compatible with \textbf{Dual Test Tactic}.
+  \item We still able to verify business logic behaviour with ``real'' integrations,
+  \item \textbf{Dual Test Tactic} enforces us to follow \textbf{LSP} and design better.
   \end{enumerate}
+
+  \begin{figure}
+  Refactorings are crucial for long-term health of the project. \\
+  \textbf{Blackbox} tests enable refactorings. \\
+  \textbf{Dual Test Tactic} drastically reduces the price of refactorings.
+  \end{figure}
 \end{frame}
 
 \begin{frame}
@@ -322,7 +333,10 @@ distage-testkit
   \begin{enumerate}
     \item \underline{Ignore} \textbf{Communication} tests in case their dependencies are unsatisfied (service unavailable), don't fail,
     \item \underline{Avoid} automatic \textit{``Mocks''}, they prevent encapsulation,
-    \item \underline{Never run} heavy dependencies in-process (don't bring whole Kafka or Cassandra into the classpath. \textbf{PLEASE}).
+    \item \underline{Never run} heavy dependencies in-process
+    \begin{itemize}
+      \item don't bring whole Kafka or Cassandra into the classpath. \textbf{PLEASE}
+    \end{itemize}
   \end{enumerate}
 \end{frame}
 
@@ -345,7 +359,7 @@ distage-testkit
 \end{frame}
 
 \begin{frame}
-  \frametitle{Dual Test Tactic: Dummy testcase steps}
+  \frametitle{Dual Test Tactic: dummy repositories testcase}
   \begin{figure}
   \digraph[scale=0.7]{dummytestplan}{
       node  [style="rounded,filled,bold", shape=box, width=1.3]
@@ -364,18 +378,18 @@ distage-testkit
 \end{frame}
 
 \begin{frame}
-  \frametitle{Dual Test Tactic: Real testcase steps}
+  \frametitle{Dual Test Tactic: production repositories testcase}
 
   \begin{columns}
   \begin{column}[T]{0.4\textwidth}
     \setlength{\topsep}{0pt}
     \setlength{\partopsep}{0pt}
 
-    \vspace{-1.3cm}
+    \vspace{-1.22cm}
     \begin{figure}
-    \hspace*{-1.65cm}
-    \digraph[scale=0.4]{prodtestplan}{
-        graph [pad="0.5", nodesep="0.3", ranksep="0.3"];
+    %\hspace*{-1.65cm}
+    \digraph[scale=0.42]{prodtestplan}{
+        graph [pad="0.2", nodesep="0.2", ranksep="0.2"];
         splines="false";
         node  [style="rounded,filled,bold", shape=box, width=1.3];
         dbchk [label="probe database port", color=gold];
@@ -423,6 +437,7 @@ distage-testkit
   \end{column}
 
   \begin{column}[T]{0.6\textwidth}
+  \vspace{-0.3cm}
   \begin{enumerate}
   \item Order
   \item How to avoid unneccessary job?
@@ -465,14 +480,17 @@ distage-testkit
   \end{itemize}
 
   \begin{figure}
-  \Large  It's hard to setup variable contexts.
+  \Large It's hard to setup variable contexts.
   \end{figure}
 \end{frame}
 
 \begin{frame}
   \begin{figure}
-  \huge Dual Test Tactic \\
-  may be very pricy under usual circumstances.
+  \Huge Dual Test Tactic
+  \end{figure}
+
+  \begin{figure}
+  \LARGE may be very pricy under usual circumstances.
   \end{figure}
 \end{frame}
 
@@ -520,38 +538,66 @@ object JustATestZioDummy extends JustATest[zio.IO] with Dummy
   \end{figure}
 
   \begin{figure}
+  \LARGE is a Dependency Injection mechanism for Scala
+  \end{figure}
 
-  \huge \dots is a module system for Scala\dots \\
+  \begin{figure}
+  \large But it lacks negative traits of a typical DI thingy\dots \\
+  \Large \dots and has many unique properties. \\
+  \dots and it's blazing fast.
+  \end{figure}
+
+  \begin{figure}
+  \large You may call it a module system for Scala\dots \\
   \Large \dots with automatic garbage-collecting solver
   \end{figure}
-
-  \begin{figure}
-  \large You may call it a ``Dependency Injection'' mechanism
-  \end{figure}
-
-  \begin{figure}
-  \large But it lacks many traits of a typical DI thingy\dots \\
-  And has many unique properties
-  \end{figure}
 \end{frame}
-
 
 \begin{frame}
   \frametitle{\distage}
   \begin{enumerate}
-  \item is non-invasive.
-    \begin{itemize}
-      \item You can add it to your project keeping business logic intact\dots
-      \item \dots and remove it.
-    \end{itemize}
-  \item does most of the job in compile-time,
-  \item does not depend on \texttt{scala-reflect}\footnotemark[1],
-  \item replaces \texttt{scala-reflect}\footnotemark[2] with own lightweight reflection,
-  \item has virtually complete support of Scala typesystem,
-  \item is not an ad-hoc thing, it has strong theory behind.
+    \item Supports FP, wires Resources, Effects, ZIO Environments\dots
+    \item transparent and predictable
+      \begin{itemize}
+        \item first plan then do
+        \item test the outcome without effect execution!
+        \item compile-time checks and tests
+      \end{itemize}
+    \item no \texttt{scala-reflect} nor Java reflection\footnotemark[1],
+      \begin{itemize}
+        \item ScalaJS support is coming
+      \end{itemize}
+    \item is non-invasive.
+      \begin{itemize}
+        \item You can add it to your project keeping business logic intact\dots
+        \item \dots and remove it.
+      \end{itemize}
+    \item is not an ad-hoc thing, it has strong theory behind.
+  \footnotetext[1]{Since version \texttt{0.10.0}, see https://blog.7mind.io/lightweight-reflection.html}
   \end{enumerate}
-  \footnotetext[1]{Since version \texttt{0.10.0}}
-  \footnotetext[2]{https://blog.7mind.io/lightweight-reflection.html}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Docker support in \distage}
+
+  \begin{figure}
+    While we develop and test we may need our integrations up and running\dots \\
+    \dots We have \texttt{docker-compose} for that\dots \\
+    But manual rituals are annoying and Compose is imperfect \\
+    (wait until service opens port? Hah)
+  \end{figure}
+
+  \begin{figure}
+    Container orchestration is not easy. \\
+    But\dots \\
+    We made a \distage extension allowing to get rid of Compose in most of the cases.
+  \end{figure}
+
+  \begin{figure}
+    It can run test containers, reuse and shutdown them. \\
+    And it can \textbf{await until the service is ready}.
+  \end{figure}
+
 \end{frame}
 
 \begin{frame}
@@ -590,23 +636,33 @@ object JustATestZioDummy extends JustATest[zio.IO] with Dummy
   \vspace{0.3cm}
   We may:
   \begin{enumerate}
-  \item Develop services (\textit{Roles}\footnotemark[1]) separately, even in multirepo,
+  \item Develop services (\textit{Roles}) separately, even in a multirepo,
   \item Build a single Docker image with multiple Roles in it,
-  \item Pass Roles we want to start as commandline parameters (and run several Roles within one process),
+  \item Run several Roles within one process
+    \begin{itemize}
+        \item We define roles we want to start as commandline parameters
+    \end{itemize}
   \item $\Rightarrow$ higher computation density, savings on infrastructure,
-  \item $\Rightarrow$ \textit{substantial} development simplification: full environment can be started on a low-end machine with one command.
+  \item $\Rightarrow$ \textit{substantial} development simplification
+      \begin{itemize}
+        \item full environment can be started on a low-end machine
+        \item with just one command
+    \end{itemize}
   \end{enumerate}
 \end{frame}
 
 \begin{frame}
   \begin{figure}
-    \texttt{distage-framework} is the most productive way to write maintainable pure functional applications with ZIO (and any other monad).
+    \texttt{distage-framework} is the most productive way to write \\
+    maintainable pure functional applications with ZIO. \\
+    (And any other monad)
   \end{figure}
   \begin{figure}
     \texttt{distage-testkit} is the best way to make your tests performant and reliable.
   \end{figure}
   \begin{figure}
-    \distage is adopted by several different companies and tested by two years of production usage.
+    \distage is adopted by several different companies and \\
+    tested by two years of production usage.
   \end{figure}
 \end{frame}
 
