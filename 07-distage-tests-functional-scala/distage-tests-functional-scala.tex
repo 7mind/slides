@@ -225,7 +225,8 @@ distage-testkit
 
 \begin{frame}
   \begin{figure}
-  \Huge Let's introduce some terminology
+  \Large Let's ditch Unit/Functional/Integration trinity\dots \\
+  \Huge \dots and introduce some new terminology
   \end{figure}
 \end{frame}
 
@@ -273,7 +274,7 @@ distage-testkit
      \textbf{Blackbox} tests with \textbf{Atomic} or \textbf{Group} Isolation Level.
   \end{figure}
   \begin{figure}
-    And it's obvious.
+    This makes sense: such tests are fast and refactßoring-resilient.
   \end{figure}
 \end{frame}
 
@@ -610,20 +611,20 @@ object JustATestZioDummy extends JustATest[zio.IO] with Dummy
   \end{figure}
 \end{frame}
 
-\section{distage}
-\begin{frame}
-  \frametitle{How it works: Plans}
-  \distage takes your bindings and then:
-  \begin{enumerate}
-    \item translates bindings into simple Turing-incomplete DSL (like \code{make}, \code{reference}, etc.),
-    \item represents the DSL statements as Directed Acyclic Graph using dependecy information and breaking circular dependencies if any,
-    \item resolves conflicts (one DAG node with several associated operations),
-    \item performs Garbage Collection (yeah, real one),
-    \item applies other transformations (like config reference resolution),
-    \item turns the DAG back into sequential form --- a Plan --- with topological sorting.
-    \item $\Rightarrow$ the Plan may be introspected, printed, executed in compile-time by a code generator or executed in runtime.
-  \end{enumerate}
-\end{frame}
+% \section{distage}
+% \begin{frame}
+%   \frametitle{How it works: Plans}
+%   \distage takes your bindings and then:
+%   \begin{enumerate}
+%     \item translates bindings into simple Turing-incomplete DSL (like \code{make}, \code{reference}, etc.),
+%     \item represents the DSL statements as Directed Acyclic Graph using dependecy information and breaking circular dependencies if any,
+%     \item resolves conflicts (one DAG node with several associated operations),
+%     \item performs Garbage Collection (yeah, real one),
+%     \item applies other transformations (like config reference resolution),
+%     \item turns the DAG back into sequential form --- a Plan --- with topological sorting.
+%     \item $\Rightarrow$ the Plan may be introspected, printed, executed in compile-time by a code generator or executed in runtime.
+%   \end{enumerate}
+% \end{frame}
 
 \begin{frame}
   \begin{figure}
