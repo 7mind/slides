@@ -442,8 +442,11 @@ Expr(Apply(Select(
   \end{figure}
 
   \begin{enumerate}
-  \item Your application and tests may specify their dependencies semi-dynamically
-  \item All the unnecessary components will not be even attempted to instantiate
+  \item Your application and tests specify which components they need to work 
+  \begin{itemize}
+    \item And this components and their dependencies will be created
+    \item \dots but everything else will be pruned
+  \end{itemize}
   \item Technically it's very similar to Garbage Collection in JVM
   \end{enumerate} 
 \end{frame}
@@ -451,8 +454,10 @@ Expr(Apply(Select(
 \begin{frame}
   \begin{figure}
     \huge \distage performs optimal ahead of time planning.
-    \\
-    It doesn't  do any unnecessary job.
+  \end{figure}
+
+    \begin{figure}
+    \Large It makes your application and tests perform no irrelevant initializations.
   \end{figure}
 \end{frame}
 
