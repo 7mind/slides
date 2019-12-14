@@ -356,6 +356,179 @@ Expr(Apply(Select(
   \end{enumerate}
 \end{frame}
 
+
+\begin{frame}
+\begin{figure}
+\color{RubineRed}
+\Huge Dependency Injection for Scala done right
+
+\rule{\linewidth}{1mm}
+
+\normalsize London Scala Users Group, Scala Community Day, 14/12/2019
+\end{figure}
+
+\begin{figure}
+  Septimal Mind Ltd \\
+  \textit{team@7mind.io} \\
+  \includegraphics[width=0.2\textwidth]{media/logo_7mind.png}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge Enigneers crave for good modularity\dots \\
+  \large \dots There were at least 4 talks at FS2019 on this subject
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge What we want from a good module system?
+  \end{figure}
+
+  \begin{enumerate}
+  \item FP Support: ZIO envs, Effects, Resources\dots
+  \item Speed
+  \item Reliability: should fail fast, no reflection
+  \item Transparency: introspections
+  \item Scalability: should work for big apps
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge What we have?
+  \end{figure}
+
+  \begin{enumerate}
+  \item TF/implicits --- does not scale
+  \item Cake pattern --- does not scale
+  \item Guice, Spring? --- no, please!
+  \item Airframe? --- no support for effects and resources
+  \item Macwire? --- no support for effects and resources
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge Are we out of options?
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge \color{RubineRed} dist✪ge
+  \end{figure}
+
+  \begin{figure}
+  \LARGE is a Dependency Injection mechanism for Scala
+  \end{figure}
+
+  \begin{figure}
+  \large But it lacks negative traits of a typical DI thingy\dots \\
+  \Large \dots and has many unique properties. \\
+  \dots and it's blazing fast.
+  \end{figure}
+
+  \begin{figure}
+  \large You may call it a module system for Scala\dots \\
+  \Large \dots with automatic dependency-pruning solver
+  \end{figure}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+  \Huge What is Dependency Pruning in \distage?
+  \end{figure}
+
+  \begin{enumerate}
+  \item Your application and tests may specify their dependencies semi-dynamically
+  \item All the unnecessary components will not be even attempted to instantiate
+  \item Technically it's very similar to Garbage Collection in JVM
+  \end{enumerate} 
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+    \huge \distage performs optimal ahead of time planning.
+    \\
+    It doesn't  do any unnecessary job.
+  \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+With \distage you can do this:
+
+\begin{scalacode}
+class JustATest[F[+_, +_]] {
+  "service" must {
+    "do something" in {
+      (users: UserService[F], accounts: AccountingService[F]) =>
+      for {
+        user  <- users.create()
+        balance <- accounts.getBalance(user)
+      } yield {
+        assert(balance == 0)
+      }
+    }
+  }
+}
+
+object JustATestZioProd extends JustATest[zio.IO] with Prod
+object JustATestZioDummy extends JustATest[zio.IO] with Dummy
+\end{scalacode}
+\end{frame}
+
+\begin{frame}[fragile]
+And this:
+
+\begin{textcode}
+laptop# docker run -ti company/product --run-all-services
+prod01# docker run -ti company/product :analytics
+prod02# docker run -ti company/product :accounting :users
+\end{textcode}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Why it's a good idea to try \distage now}
+  \begin{enumerate}
+    \item Supports FP, wires Resources, Effects, ZIO Environments\dots
+    \item Transparent and predictable
+    \item Supports Roles and Dependency Pruning
+      \begin{itemize}
+        \item May \textbf{drastically} simplify development and operations workflows
+        \item Helps you to write best tests possible without boilerplate
+      \end{itemize}
+    \item Promotes good practices and SOLID
+    \item Most of the job is done in compile-time
+    \item Safe
+    \item Blazing fast
+    \item no \texttt{scala-reflect} nor Java reflection, ScalaJS support is coming
+    \item is non-invasive.
+      \begin{itemize}
+        \item You can add it to your project keeping business logic intact\dots
+        \item \dots and remove it.
+      \end{itemize}
+    \item is not an ad-hoc thing, it has strong theory behind.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \begin{figure}
+    \texttt{distage-framework} is the most productive way to write \\
+    maintainable pure functional applications with ZIO. \\
+    (And any other monad)
+  \end{figure}
+  \begin{figure}
+    \texttt{distage-testkit} is the best way to make your tests performant and reliable.
+  \end{figure}
+  \begin{figure}
+    \distage is adopted by several different companies and \\
+    tested by two years of production usage.
+  \end{figure}
+\end{frame}
+
+
 \begin{frame}
     \frametitle{Thank you for your attention}
     \begin{center}
